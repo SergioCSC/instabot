@@ -146,7 +146,36 @@ def pick_by_date(upi_: UserPostsInfo, date_: str,
         raise ValueError(f'error month: {month} date: {date_}')
 
 
-def variance_dict(*counters) -> dict:
+def fill_variances(users_posts_info: list[UserPostsInfo]) -> None:
+    for user_posts_info in users_posts_info:
+        user_posts_info.m_var = _variance_dict(
+            user_posts_info.m_00_to_10_r,
+            user_posts_info.m_10_to_20_r,
+            user_posts_info.m_20_to_30_r,
+            user_posts_info.m_30_to_40_r,
+            user_posts_info.m_40_to_50_r,
+            user_posts_info.m_50_to_60_r,
+        )
+        user_posts_info.h_var = _variance_dict(
+            user_posts_info.h_3_to_9_r,
+            user_posts_info.h_9_to_15_r,
+            user_posts_info.h_15_to_21_r,
+            user_posts_info.h_21_to_3_r,
+        )
+        user_posts_info.d_var = _variance_dict(
+            user_posts_info.d_01_to_10_r,
+            user_posts_info.d_11_to_20_r,
+            user_posts_info.d_21_to_31_r,
+        )
+        user_posts_info.season_var = _variance_dict(
+            user_posts_info.winter_r,
+            user_posts_info.spring_r,
+            user_posts_info.summer_r,
+            user_posts_info.autumn_r,
+        )
+
+
+def _variance_dict(*counters) -> dict:
     def bessel_variance(l: Sized) -> float:  # same as statistics.variance()
         mean = sum(l) / len(l)
         return sum((x - mean) ** 2 for x in l) / (len(l) - 1)

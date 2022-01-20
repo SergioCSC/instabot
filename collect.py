@@ -94,32 +94,7 @@ for user_posts_info in users_posts_info:
 print(f'calibrate: v --> v / overall_v for all post, likes, comments values: {time.time() - start_time}')
 
 # calc variances
-for user_posts_info in users_posts_info:
-    user_posts_info.m_variance = upi.variance_dict(
-        user_posts_info.m_00_to_10_r,
-        user_posts_info.m_10_to_20_r,
-        user_posts_info.m_20_to_30_r,
-        user_posts_info.m_30_to_40_r,
-        user_posts_info.m_40_to_50_r,
-        user_posts_info.m_50_to_60_r,
-    )
-    user_posts_info.h_variance = upi.variance_dict(
-        user_posts_info.h_3_to_9_r,
-        user_posts_info.h_9_to_15_r,
-        user_posts_info.h_15_to_21_r,
-        user_posts_info.h_21_to_3_r,
-    )
-    user_posts_info.d_variance = upi.variance_dict(
-        user_posts_info.d_01_to_10_r,
-        user_posts_info.d_11_to_20_r,
-        user_posts_info.d_21_to_31_r,
-    )
-    user_posts_info.season_variance = upi.variance_dict(
-        user_posts_info.winter_r,
-        user_posts_info.spring_r,
-        user_posts_info.summer_r,
-        user_posts_info.autumn_r,
-    )
+upi.fill_variances(users_posts_info)
 
 print(f'calc variances: {time.time() - start_time}')
 
@@ -129,7 +104,7 @@ post_columns = [f'{c}_{s}' for s in upi.UserPostsInfo.__annotations__ for c in (
 # all_u = all_u.copy()
 
 users_post_dataframes = []
-users_post_ndarray = np.zeros((len(all_u), len(post_columns)))
+users_post_ndarray_ = np.zeros((len(all_u), len(post_columns)))
 
 i = 0
 for user_posts_info in users_posts_info:
@@ -146,9 +121,9 @@ for user_posts_info in users_posts_info:
         # all_u[f'{upi.LIKES_N}_{k}'].iloc[i] = posts_likes_comments_num[upi.LIKES_N]
         # all_u[f'{upi.COMMENTS_N}_{k}'].iloc[i] = posts_likes_comments_num[upi.COMMENTS_N]
 
-        users_post_ndarray[i, j] = posts_likes_comments_num[upi.POSTS_N]
-        users_post_ndarray[i, j + 1] = posts_likes_comments_num[upi.LIKES_N]
-        users_post_ndarray[i, j + 2] = posts_likes_comments_num[upi.COMMENTS_N]
+        users_post_ndarray_[i, j] = posts_likes_comments_num[upi.POSTS_N]
+        users_post_ndarray_[i, j + 1] = posts_likes_comments_num[upi.LIKES_N]
+        users_post_ndarray_[i, j + 2] = posts_likes_comments_num[upi.COMMENTS_N]
         j += 3
 
     users_post_dataframes.append(user_posts_dataframe)
@@ -158,11 +133,12 @@ for user_posts_info in users_posts_info:
 print(f'ndarray from counters: {time.time() - start_time}')  # 4 minutes with Dataframes filling
 
 # make all_u columns from posts likes comments rates
-# all_u[post_columns] = pd.DataFrame(users_post_ndarray)  # bug: rows with same label
-# all_u = pd.concat([all_u, pd.DataFrame(users_post_ndarray)], axis=1)
-# all_u.join(pd.DataFrame(users_post_ndarray))
-all_u[post_columns[0]] = users_post_ndarray[:, 0]
-all_u = all_u.copy()  # defragmentation of frame
+# all_u[post_columns] = pd.DataFrame(users_post_ndarray_)  # bug: rows with same label
+# all_u = pd.concat([all_u, pd.DataFrame(users_post_ndarray_)], axis=1)
+# all_u.join(pd.DataFrame(users_post_ndarray_))
+# all_u[post_columns[0]] = users_post_ndarray_[:, 0]
+all_u[post_columns] = pd.DataFrame(users_post_ndarray_, index=all_u.index)  # bug: rows with same label
+all_u = all_u.copy()  # defragmentation of dataframe
 
 print(f'add ndarray to all_u: {time.time() - start_time}')
 
@@ -170,6 +146,7 @@ description = all_u.describe(include='all')  # .loc['unique', :]
 
 print(f'all_u.descibe(): {time.time() - start_time}')
 
+column_i = 0
 for col in all_u:
     _, most_popular_column_value = most_popular_list_value([v for v in all_u[col] if str(v) not in EMPTY_VALUES_STR])
     if isinstance(most_popular_column_value, list):
@@ -210,6 +187,9 @@ for col in all_u:
         # make classes from values
         all_u[col] = [0 if str(v) in EMPTY_VALUES_STR else sorted_classes_of_values.index(str(v)) for v in all_u[col]]
 
+    column_i += 1
+
+
 print(f'cells: list, dict, str --> int: {time.time() - start_time}')
 
 # filter out columns with very small fraction of non-trivial values
@@ -226,13 +206,23 @@ for col in all_u:
     left = min(all_u[col])
     right = max(all_u[col])
     all_u[col] = [(v - left) / (right - left) for v in all_u[col]]
+
+    # logarithmic scale
+    if col in ('media_count', 'follower_count', 'following_count',
+               'following_tag_count', 'usertags_count', 'total_igtv_videos',
+               'interop_messaging_user_fbid', 'p', 'l', 'c'):
+        scale = math.log(min([v for v in all_u[col] if v])) - 1
+        scaled = [1 - math.log(v) / scale if v else 0.0 for v in all_u[col]]
+        all_u[col] = scaled
+        pass
+
     pass
 
 print(f'scale all columns to [0, 1]: {time.time() - start_time}')
 
 target = all_u['bot']
 
-corr = all_u.corr(method='pearson')
+# corr = all_u.corr(method='pearson')
 # shuffled_all_u = all_u.sample(frac=1)
 # auto_correlations = sorted([(c, (shuffled_all_u[c]).autocorr()) for c in all_u], key=lambda p: p[1])
 
@@ -243,11 +233,22 @@ del all_u['contact_phone_number']  # correlation with 'public_phone_number' == 1
 del all_u['city_name']  # correlation with 'city_id' == 0.9998
 
 # del all_u['is_eligible_for_smb_support_flow']  # correlation with 'is_interest_account' == 0.97
-
+del all_u['posts']  # same as 'p_overall'
+del all_u['city_id']  # correlation with latitude > 0.97
+del all_u['public_phone_country_code']  # corr with public_phone_number > 0.97
 # corr = all_u.corr(method='pearson')
 
 del all_u['pk']  # correlation with 'bot' == 0.92, look like cheat
 del all_u['interop_messaging_user_fbid']  # correlation with 'bot' == 0.93, look like cheat
+del all_u['l_autumn_r']  # corr with p_autumn_r > 0.98
+del all_u['l_spring_r']  # corr with p_spring_r > 0.98
+del all_u['l_winter_r']  # corr with p_winter_r > 0.98
+del all_u['l_d_var']  # corr with p_d_var > 0.97
+del all_u['l_d_01_to_10_r']  # corr with p_d_01_to_10_r > 0.99
+del all_u['l_d_11_to_20_r']  # corr with p_d_11_to_20_r > 0.98
+del all_u['l_h_21_to_3_r']  # corr with p_h_21_to_3_r > 0.98
+del all_u['l_h_15_to_21_r']  # corr with p_h_15_to_21_r > 0.98
+del all_u['l_h_9_to_15_r']  # corr with p_h_9_to_15_r > 0.98
 
 del all_u['bot']
 
@@ -259,6 +260,7 @@ del all_u['bot']
 # del all_u['longitude']
 # del all_u['public_phone_country_code']
 
+print(f'del highly correlated columns: {time.time() - start_time}')
 # corr = all_u.corr(method='pearson')
 
 # print(min(corr))
