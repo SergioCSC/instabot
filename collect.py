@@ -37,7 +37,8 @@ def most_popular_list_value(l_: list) -> Any:
 start_time = time.time()
 
 THIS_PYTHON_SCRIPT_DIR = Path(__file__).resolve().parent
-USERS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'json_with_posts'
+USERS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' / 'users'
+# USERS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'json_with_posts'
 # USERS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_detail_march'
 # all_u = pd.read_json(USERS_DIR / 'bots_1st_two.json')
 # all_u = pd.read_json(USERS_DIR / '50_bots.json')
@@ -47,7 +48,8 @@ USERS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'json_with_posts'
 # all_u = all_u.append(pd.read_json(USERS_DIR / 'cha_food_no_bots.json'))
 # all_u = all_u.append(pd.read_json(USERS_DIR / 'alinkamoon_no_bots.json'))
 # all_u = all_u.append(pd.read_json(USERS_DIR / 'smagincartoonist_no_bots.json'))
-all_u = pd.read_json(USERS_DIR / 'over_500_business_accounts.json')
+# all_u = pd.read_json(USERS_DIR / 'over_500_business_accounts.json')
+all_u = pd.read_json(USERS_DIR / 'users_output_from_10_to_16_converted.json')
 
 print(f'read jsons: {time.time() - start_time}')
 
@@ -56,20 +58,20 @@ all_u[col] = [len(v['entities']) for v in all_u[col]]
 
 POSTS_COLUMN = 'posts'
 users_posts = all_u[POSTS_COLUMN]  # [:10]
-# users_posts_lens = [[len(p['text']) for p in user_posts] for user_posts in users_posts]
-# users_total_lens = [sum(posts_lens) for posts_lens in users_posts_lens]
-# users_average_post_lens = [sum(pl) / len(pl) if pl else 0 for pl in users_posts_lens]
-# users_stdev_post_lens = [statistics.stdev(pl) if len(pl) > 1 else 0 for pl in users_posts_lens]
+users_posts_lens = [[len(p['text']) for p in user_posts] for user_posts in users_posts]
+users_total_lens = [sum(posts_lens) for posts_lens in users_posts_lens]
+users_average_post_lens = [sum(pl) / len(pl) if pl else 0 for pl in users_posts_lens]
+users_stdev_post_lens = [statistics.stdev(pl) if len(pl) > 1 else 0 for pl in users_posts_lens]
 #
-# all_u['total_posts_length'] = users_total_lens
-# all_u['average_post_length'] = users_average_post_lens
-# all_u['stdev_posts_length'] = users_stdev_post_lens
+all_u['total_posts_length'] = users_total_lens
+all_u['average_post_length'] = users_average_post_lens
+all_u['stdev_posts_length'] = users_stdev_post_lens
 
 all_u[POSTS_COLUMN] = [v if not (isinstance(v, float) and math.isnan(v)) else [] for v in all_u[POSTS_COLUMN]]
 
 all_u[upi.POSTS_N] = [len(v) for v in all_u[POSTS_COLUMN]]
-all_u[upi.LIKES_N] = [sum([int(p.split(':')[-3]) for p in v]) for v in all_u[POSTS_COLUMN]]
-all_u[upi.COMMENTS_N] = [sum([int(p.split(':')[-2]) if p.split(':')[-2] else 0 for p in v]) for v in all_u[POSTS_COLUMN]]
+all_u[upi.LIKES_N] = [sum([int(p['likes_count']) for p in v]) for v in all_u[POSTS_COLUMN]]
+all_u[upi.COMMENTS_N] = [sum([int(p['comments_count']) for p in v]) for v in all_u[POSTS_COLUMN]]
 
 
 print(f'calc posts likes comments: {time.time() - start_time}')
@@ -80,12 +82,11 @@ for i in range(len(all_u)):
     user_posts_info = upi.UserPostsInfo()
 
     for post in user_posts:
-        post_parts = post.split(':')
-        likes_count = int(post_parts[-3])
-        comments_count = int(post_parts[-2]) if post_parts[-2] else 0
-        date_and_time = post_parts[-1]
-        date_, time_ = date_and_time.split('_')
-        hours, minutes = (int(t) for t in time_.split('.'))
+        likes_count = int(post['likes_count'])  # post_parts[-3])
+        comments_count = int(post['comments_count'])
+        date_ = post['date']
+        time_ = post['time']
+        hours, minutes = (int(t) for t in time_.split(':'))
         try:
             upi.pick_by_minutes(user_posts_info, minutes, 1, likes_count, comments_count)
             upi.pick_by_hours(user_posts_info, hours, 1, likes_count, comments_count)
