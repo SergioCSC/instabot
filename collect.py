@@ -1,3 +1,5 @@
+import statistics
+
 import numpy as np
 
 import userpostsinfo as upi
@@ -36,13 +38,16 @@ start_time = time.time()
 
 THIS_PYTHON_SCRIPT_DIR = Path(__file__).resolve().parent
 USERS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'json_with_posts'
-all_u = pd.read_json(USERS_DIR / '50_bots.json')
-all_u = all_u.append(pd.read_json(USERS_DIR / '327_bots.json'))
-all_u = all_u.append(pd.read_json(USERS_DIR / '42_no_bots.json'))
-all_u = all_u.append(pd.read_json(USERS_DIR / '_alexandra_arch_no_bots.json'))
-all_u = all_u.append(pd.read_json(USERS_DIR / 'cha_food_no_bots.json'))
-all_u = all_u.append(pd.read_json(USERS_DIR / 'alinkamoon_no_bots.json'))
-all_u = all_u.append(pd.read_json(USERS_DIR / 'smagincartoonist_no_bots.json'))
+# USERS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_detail_march'
+# all_u = pd.read_json(USERS_DIR / 'bots_1st_two.json')
+# all_u = pd.read_json(USERS_DIR / '50_bots.json')
+# all_u = all_u.append(pd.read_json(USERS_DIR / '327_bots.json'))
+# all_u = all_u.append(pd.read_json(USERS_DIR / '42_no_bots.json'))
+# all_u = all_u.append(pd.read_json(USERS_DIR / '_alexandra_arch_no_bots.json'))
+# all_u = all_u.append(pd.read_json(USERS_DIR / 'cha_food_no_bots.json'))
+# all_u = all_u.append(pd.read_json(USERS_DIR / 'alinkamoon_no_bots.json'))
+# all_u = all_u.append(pd.read_json(USERS_DIR / 'smagincartoonist_no_bots.json'))
+all_u = pd.read_json(USERS_DIR / 'over_500_business_accounts.json')
 
 print(f'read jsons: {time.time() - start_time}')
 
@@ -50,9 +55,22 @@ col = 'biography_with_entities'
 all_u[col] = [len(v['entities']) for v in all_u[col]]
 
 POSTS_COLUMN = 'posts'
+users_posts = all_u[POSTS_COLUMN]  # [:10]
+# users_posts_lens = [[len(p['text']) for p in user_posts] for user_posts in users_posts]
+# users_total_lens = [sum(posts_lens) for posts_lens in users_posts_lens]
+# users_average_post_lens = [sum(pl) / len(pl) if pl else 0 for pl in users_posts_lens]
+# users_stdev_post_lens = [statistics.stdev(pl) if len(pl) > 1 else 0 for pl in users_posts_lens]
+#
+# all_u['total_posts_length'] = users_total_lens
+# all_u['average_post_length'] = users_average_post_lens
+# all_u['stdev_posts_length'] = users_stdev_post_lens
+
+all_u[POSTS_COLUMN] = [v if not (isinstance(v, float) and math.isnan(v)) else [] for v in all_u[POSTS_COLUMN]]
+
 all_u[upi.POSTS_N] = [len(v) for v in all_u[POSTS_COLUMN]]
-all_u[upi.LIKES_N] = [sum([int(p.split(':')[-3]) for p in v]) for v in all_u['posts']]
-all_u[upi.COMMENTS_N] = [sum([int(p.split(':')[-2]) if p.split(':')[-2] else 0 for p in v]) for v in all_u['posts']]
+all_u[upi.LIKES_N] = [sum([int(p.split(':')[-3]) for p in v]) for v in all_u[POSTS_COLUMN]]
+all_u[upi.COMMENTS_N] = [sum([int(p.split(':')[-2]) if p.split(':')[-2] else 0 for p in v]) for v in all_u[POSTS_COLUMN]]
+
 
 print(f'calc posts likes comments: {time.time() - start_time}')
 
