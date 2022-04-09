@@ -26,6 +26,31 @@ def random_seed_initialization(seed: int) -> None:
     torch.backends.cudnn.deterministic = True
 
 
+class InstaNet(torch.nn.Module):
+    def __init__(self, n_hidden_neurons):
+        super(InstaNet, self).__init__()
+        # self.fc1 = torch.nn.Linear(X_train.shape[1], 1)
+        self.fc1 = torch.nn.Linear(X_train.shape[1], n_hidden_neurons)
+        self.ac1 = torch.nn.Sigmoid()
+        self.fc2 = torch.nn.Linear(n_hidden_neurons, 3)
+
+        self.sm = torch.nn.Softmax(dim=1)
+        # !!! anything else ?
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.ac1(x)
+        x = self.fc2(x)
+
+        # !!! anything else ?
+
+        return x
+
+    #!!! def inference(self, x): ?
+    #!!! where inference is used?
+
+
+
 X_train, X_validation, y_train, y_validation = train_test_split(
     X_train,
     y_train,
@@ -50,23 +75,8 @@ for attempt in range(LEARNING_ATTEMPTS_COUNT):
 
     random_seed_initialization(int(time.time()))
 
-    loss = torch.nn.BCEWithLogitsLoss()  # TODO or CrossEntopyLoss() or BCELoss() ?
-
-
-    class InstaNet(torch.nn.Module):
-        def __init__(self, n_hidden_neurons):
-            super(InstaNet, self).__init__()
-            self.fc1 = torch.nn.Linear(X_train.shape[1], 1)
-            # self.fc1 = torch.nn.Linear(X_train.shape[1], n_hidden_neurons)
-            # self.ac1 = torch.nn.Sigmoid()
-            # self.fc2 = torch.nn.Linear(n_hidden_neurons, 1)
-
-        def forward(self, x):
-            x = self.fc1(x)
-            # x = self.ac1(x)
-            # x = self.fc2(x)
-            return x
-
+    # loss = torch.nn.BCEWithLogitsLoss()  # TODO or CrossEntopyLoss() or BCELoss() ?
+    loss = torch.nn.CrossEntropyLoss()
 
     insta_net = InstaNet(NEURONS_COUNT)
 
@@ -115,6 +125,7 @@ for attempt in range(LEARNING_ATTEMPTS_COUNT):
             loss_value.backward()
 
             epoch_train_loss.append(f16(loss_value))
+            preds = preds.argmax(dim=1)
             epoch_train_accuracy.append(f16(((preds > 0) == y_batch).float().mean()))
 
             optimizer.step()
@@ -125,6 +136,7 @@ for attempt in range(LEARNING_ATTEMPTS_COUNT):
         val_loss_history.append(f16(loss(val_preds, y_validation)))
         train_loss_history.append(f16(sum(epoch_train_loss) / len(epoch_train_loss)))
 
+        val_preds = val_preds.argmax(dim=1)
         val_accuracy = f16(((val_preds > 0) == y_validation).float().mean())
         train_accuracy = f16(sum(epoch_train_accuracy) / len(epoch_train_accuracy))
         train_accuracy_history.append(train_accuracy)

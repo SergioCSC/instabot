@@ -203,6 +203,8 @@ print(f'filter out columns with very small fraction of non-trivial values: {time
 
 # scale all columns to [0, 1]
 for col in all_u:
+    if col == 'bot':
+        continue  # don't scale 'bot' column
     left = min(all_u[col])
     right = max(all_u[col])
     all_u[col] = [(v - left) / (right - left) for v in all_u[col]]
@@ -273,7 +275,7 @@ X_train, _X_test, y_train, _y_test = train_test_split(
 
 X_train = torch.FloatTensor(X_train.to_numpy())  # maybe FloatTensor
 # y_train = torch.LongTensor(y_train.to_numpy())  # maybe CharTensor or BoolTensor
-y_train = torch.HalfTensor(y_train.to_numpy())  # maybe CharTensor or BoolTensor
+y_train = torch.LongTensor(y_train.to_numpy())  # maybe CharTensor or BoolTensor
 
 _X_test = torch.FloatTensor(_X_test.to_numpy())
 # _y_test = torch.LongTensor(_y_test.to_numpy())
