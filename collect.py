@@ -1,8 +1,13 @@
+from nn_config import TRAIN_DATA_FILE, TEST_DATA_FILE, DATAFRAME_NAME
+from userpoststext import split_words
+import userpostsinfo as upi
+
 import statistics
 
+import emoji
 import numpy as np
+import fasttext
 
-import userpostsinfo as upi
 
 from collections import defaultdict, Counter
 from pathlib import Path
@@ -20,6 +25,7 @@ import torch
 EMPTY_VALUES_STR = {'', '0', '0.0', '0.00000', 'nan', 'none', 'None', 'UNKNOWN', '[]'}
 UNIQUE_NUM_THRESHOLD = 10
 NON_TRIVIAL_VALUES_FRACTION_THRESHOLD = 0.02
+model = fasttext.load_model('lid.176.ftz')
 
 
 def most_popular_list_value(l_: list) -> Any:
@@ -62,6 +68,16 @@ users_posts_lens = [[len(p['text']) for p in user_posts] for user_posts in users
 users_total_lens = [sum(posts_lens) for posts_lens in users_posts_lens]
 users_average_post_lens = [sum(pl) / len(pl) if pl else 0 for pl in users_posts_lens]
 users_stdev_post_lens = [statistics.stdev(pl) if len(pl) > 1 else 0 for pl in users_posts_lens]
+
+users_posts_emojis = [[[c for c in p['text'] if c in emoji.UNICODE_EMOJI['en']] for p in user_posts] for user_posts in users_posts]
+users_emoji_percents = [[len([c for c in p['text'] if c in emoji.UNICODE_EMOJI['en']])/len(p['text']) for p in user_posts] for user_posts in users_posts]
+users_emoji_average_percent = [sum(user_emoji_percents)/len(user_emoji_percents) if user_emoji_percents else 0 for user_emoji_percents in users_emoji_percents]
+
+users_posts_langs = [Counter(model.predict(p['text'])[0][0][9:] for p in user_posts) for user_posts in users_posts]
+
+users_vocabularies = [Counter(word for p in user_posts for word in split_words(p['text'].lower())) for user_posts in users_posts]
+for user_vocabulary in users_vocabularies:
+    del user_vocabulary['']
 #
 all_u['total_posts_length'] = users_total_lens
 all_u['average_post_length'] = users_average_post_lens
