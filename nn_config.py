@@ -1,8 +1,15 @@
 LEARNING_ATTEMPTS_COUNT = 20
 EPOCH_COUNT = 300
 BATCH_SIZE = 100
-NEURONS_COUNT = 5
+HIDDEN_NEURONS_COUNT = 5
 LEARNING_RATE = 3.0e-4
 LEARN_TYPE = f'Adam'
 MOMENTUM = 0.9
+
+TRAIN_DATA_FILE = 'train_dataframe.h5'
+TEST_DATA_FILE = 'test_dataframe.h5'
+
+DATAFRAME_NAME = 'features_and_target'
+
+MODEL_SAVE_PATH = 'state_dict_model.pt'
 

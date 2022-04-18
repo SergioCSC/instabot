@@ -4,7 +4,7 @@ from learning import val_loss_histories
 from learning import train_loss_histories
 from learning import LEARN_TYPE
 from learning import LEARNING_RATE
-from learning import NEURONS_COUNT
+from learning import HIDDEN_NEURONS_COUNT
 from learning import BATCH_SIZE
 from learning import LEARNING_ATTEMPTS_COUNT
 
@@ -34,7 +34,7 @@ for style in styles:
     # plt.plot(val_loss_history, label=f'{LEARN_TYPE} lr={LEARNING_RATE} val loss');
     # plt.plot(train_loss_history, label=f'{LEARN_TYPE} lr={LEARNING_RATE} train loss');
     title = f'attempts = {LEARNING_ATTEMPTS_COUNT} ' \
-            f'neurons = {NEURONS_COUNT} ' \
+            f'neurons = {HIDDEN_NEURONS_COUNT} ' \
             f'batch size = {BATCH_SIZE} ' \
             f'method = {LEARN_TYPE} ' \
             f'learning rate = {LEARNING_RATE} '

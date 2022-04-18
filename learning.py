@@ -1,13 +1,14 @@
-from collections import defaultdict
-
-
-from nn_config import EPOCH_COUNT, NEURONS_COUNT,\
+from nn_config import EPOCH_COUNT, HIDDEN_NEURONS_COUNT,\
         LEARNING_RATE, LEARN_TYPE, LEARNING_ATTEMPTS_COUNT, \
-        BATCH_SIZE, MOMENTUM
-from collect import all_u, X_train, y_train  # _y_test, _X_test
+        BATCH_SIZE, MOMENTUM, MODEL_SAVE_PATH, TRAIN_DATA_FILE, DATAFRAME_NAME
+
+from net import InstaNet
+
+# from collect import all_u, X_train, y_train  # _y_test, _X_test
 
 import time
 import random
+from collections import defaultdict
 import numpy as np
 import pandas as pd
 import torch
@@ -26,30 +27,13 @@ def random_seed_initialization(seed: int) -> None:
     torch.backends.cudnn.deterministic = True
 
 
-class InstaNet(torch.nn.Module):
-    def __init__(self, n_hidden_neurons):
-        super(InstaNet, self).__init__()
-        # self.fc1 = torch.nn.Linear(X_train.shape[1], 1)
-        self.fc1 = torch.nn.Linear(X_train.shape[1], n_hidden_neurons)
-        self.ac1 = torch.nn.Sigmoid()
-        self.fc2 = torch.nn.Linear(n_hidden_neurons, 3)
+train_store = pd.HDFStore(TRAIN_DATA_FILE)
+X_train = train_store[DATAFRAME_NAME]
+y_train = X_train['bot']
+del X_train['bot']
 
-        self.sm = torch.nn.Softmax(dim=1)
-        # !!! anything else ?
-
-    def forward(self, x):
-        x = self.fc1(x)
-        x = self.ac1(x)
-        x = self.fc2(x)
-
-        # !!! anything else ?
-
-        return x
-
-    #!!! def inference(self, x): ?
-    #!!! where inference is used?
-
-
+X_train = torch.FloatTensor(X_train.to_numpy())  # maybe HalfTensor
+y_train = torch.LongTensor(y_train.to_numpy())  # maybe CharTensor or BoolTensor
 
 X_train, X_validation, y_train, y_validation = train_test_split(
     X_train,
@@ -78,7 +62,7 @@ for attempt in range(LEARNING_ATTEMPTS_COUNT):
     # loss = torch.nn.BCEWithLogitsLoss()  # TODO or CrossEntopyLoss() or BCELoss() ?
     loss = torch.nn.CrossEntropyLoss()
 
-    insta_net = InstaNet(NEURONS_COUNT)
+    insta_net = InstaNet(X_train.shape[1], HIDDEN_NEURONS_COUNT)
 
     if LEARN_TYPE == 'SGD':
         optimizer = torch.optim.SGD(insta_net.parameters(), lr=LEARNING_RATE,
@@ -164,12 +148,19 @@ for attempt in range(LEARNING_ATTEMPTS_COUNT):
 
     train_accuracy_histories.append(train_accuracy_history)
     val_accuracy_histories.append(val_accuracy_history)
+    
+
+torch.save(insta_net.state_dict(), MODEL_SAVE_PATH)
 
 pass
+
+X_train = train_store[DATAFRAME_NAME]
+del X_train['bot']
+
 for key, values_list in net_weights.items():
-    matrix_numpy = np.array([v.detach().numpy().squeeze() for v in values_list])
-    if matrix_numpy.ndim == 2 and matrix_numpy.shape[1] == len(all_u.columns):
-        df = pd.DataFrame(matrix_numpy, columns=all_u.columns)
+    matrix_numpy = np.array([v.detach().numpy().squeeze() for v in values_list])[0]
+    if matrix_numpy.ndim == 2 and matrix_numpy.shape[1] == len(X_train.columns):
+        df = pd.DataFrame(matrix_numpy, columns=X_train.columns)
         description = df.describe(include='all')
         description = description.sort_values(axis=1, by='mean', key=lambda x: -abs(x)).transpose()
         pass

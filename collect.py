@@ -257,8 +257,6 @@ for col in all_u:
 
 print(f'scale all columns to [0, 1]: {time.time() - start_time}')
 
-target = all_u['bot']
-
 # corr = all_u.corr(method='pearson')
 # shuffled_all_u = all_u.sample(frac=1)
 # auto_correlations = sorted([(c, (shuffled_all_u[c]).autocorr()) for c in all_u], key=lambda p: p[1])
@@ -287,8 +285,6 @@ del all_u['l_h_21_to_3_r']  # corr with p_h_21_to_3_r > 0.98
 del all_u['l_h_15_to_21_r']  # corr with p_h_15_to_21_r > 0.98
 del all_u['l_h_9_to_15_r']  # corr with p_h_9_to_15_r > 0.98
 
-del all_u['bot']
-
 # low importance due to 1 neuron learning
 # del all_u['full_name']
 # del all_u['follower_count']
@@ -299,19 +295,17 @@ del all_u['bot']
 
 print(f'del highly correlated columns: {time.time() - start_time}')
 # corr = all_u.corr(method='pearson')
-
 # print(min(corr))
 
-X_train, _X_test, y_train, _y_test = train_test_split(
+X_train, _X_test = train_test_split(
     all_u,
-    target,
-    test_size=0.1,
+    test_size=0.2,
     shuffle=True)
 
-X_train = torch.FloatTensor(X_train.to_numpy())  # maybe FloatTensor
-# y_train = torch.LongTensor(y_train.to_numpy())  # maybe CharTensor or BoolTensor
-y_train = torch.LongTensor(y_train.to_numpy())  # maybe CharTensor or BoolTensor
+train_store = pd.HDFStore(TRAIN_DATA_FILE)
+test_store = pd.HDFStore(TEST_DATA_FILE)
 
-_X_test = torch.FloatTensor(_X_test.to_numpy())
-# _y_test = torch.LongTensor(_y_test.to_numpy())
-_y_test = torch.HalfTensor(_y_test.to_numpy())
+train_store[DATAFRAME_NAME] = X_train
+test_store[DATAFRAME_NAME] = _X_test
+
+pass
