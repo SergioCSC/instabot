@@ -8,8 +8,12 @@ MOMENTUM = 0.9
 
 TRAIN_DATA_FILE = 'train_dataframe.h5'
 TEST_DATA_FILE = 'test_dataframe.h5'
+MODEL_SAVE_FILE = 'state_dict_model.pt'
 
 DATAFRAME_NAME = 'features_and_target'
 
-MODEL_SAVE_PATH = 'state_dict_model.pt'
-
+from pathlib import Path
+THIS_PYTHON_SCRIPT_DIR = Path(__file__).resolve().parent
+ACCOUNTS_JSONS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' / 'users'
+ACCOUNTS_JSONS_DIR_2 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
+                       / '21_april' / 'non_bots' / '_alexandra_arch' / 'users'

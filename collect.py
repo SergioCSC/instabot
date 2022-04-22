@@ -1,4 +1,7 @@
-from nn_config import TRAIN_DATA_FILE, TEST_DATA_FILE, DATAFRAME_NAME
+import sys
+
+from csv2json import csv2json
+from nn_config import TRAIN_DATA_FILE, TEST_DATA_FILE, DATAFRAME_NAME, ACCOUNTS_JSONS_DIR, ACCOUNTS_JSONS_DIR_2
 from userpoststext import split_words
 from zipf import estimate_zipf
 import userpostsinfo as upi
@@ -49,32 +52,43 @@ def most_popular_list_value(l_: list) -> Any:
     return sorted_value_popularity_[0][1]
 
 
-def read_accounts_from_json_to_dataframe() -> pd.DataFrame:
+def read_accounts_from_json_to_dataframe(filepath: Path) -> pd.DataFrame:
 
-    THIS_PYTHON_SCRIPT_DIR = Path(__file__).resolve().parent
-    USERS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' / 'users'
-    # USERS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'json_with_posts'
-    # USERS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_detail_march'
-    # all_u = pd.read_json(USERS_DIR / 'bots_1st_two.json')
-    # all_u = pd.read_json(USERS_DIR / '50_bots.json')
-    # all_u = all_u.append(pd.read_json(USERS_DIR / '327_bots.json'))
-    # all_u = all_u.append(pd.read_json(USERS_DIR / '42_no_bots.json'))
-    # all_u = all_u.append(pd.read_json(USERS_DIR / '_alexandra_arch_no_bots.json'))
-    # all_u = all_u.append(pd.read_json(USERS_DIR / 'cha_food_no_bots.json'))
-    # all_u = all_u.append(pd.read_json(USERS_DIR / 'alinkamoon_no_bots.json'))
-    # all_u = all_u.append(pd.read_json(USERS_DIR / 'smagincartoonist_no_bots.json'))
-    # all_u = pd.read_json(USERS_DIR / 'over_500_business_accounts.json')
-    all_u = pd.read_json(USERS_DIR / 'users_output_from_10_to_16_converted.json')
-    # all_u = pd.read_json(USERS_DIR / '32_users_output_converted.json')
+    if filepath:
+        if filepath.suffix == '.csv':
+            filepath = csv2json(filepath, -1)
+        elif filepath.suffix == '.json':
+            all_u = pd.read_json(filepath)
+            if 'user' in all_u and 'posts' not in all_u and 'biography_with_entities' not in all_u:
+                filepath = csv2json(filepath, -1)
+        else:
+            raise NotImplementedError
+        all_u = pd.read_json(filepath)
+    else:
+        # ACCOUNTS_JSONS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'json_with_posts'
+        # ACCOUNTS_JSONS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_detail_march'
+        # all_u = pd.read_json(ACCOUNTS_JSONS_DIR / 'bots_1st_two.json')
+        # all_u = pd.read_json(ACCOUNTS_JSONS_DIR / '50_bots.json')
+        # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / '327_bots.json'))
+        # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / '42_no_bots.json'))
+        # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / '_alexandra_arch_no_bots.json'))
+        # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / 'cha_food_no_bots.json'))
+        # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / 'alinkamoon_no_bots.json'))
+        # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / 'smagincartoonist_no_bots.json'))
+        # all_u = pd.read_json(ACCOUNTS_JSONS_DIR / 'over_500_business_accounts.json')
+        all_u = pd.read_json(ACCOUNTS_JSONS_DIR / 'users_output_from_10_to_16_converted.json')
+        all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR_2 / 'users_output_converted_bots_marked.json'))
+        # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / '32_users_output_converted.json'))
 
     print_with_time('read jsons')
     return all_u
 
 
-def feature_extraction(all_u: pd.DataFrame):
+def feature_extraction(all_u: pd.DataFrame) -> pd.DataFrame:
 
     col = 'biography_with_entities'
-    all_u[col] = [len(v['entities']) for v in all_u[col]]
+    if col in all_u:
+        all_u[col] = [len(v['entities']) for v in all_u[col]]
 
     POSTS_COLUMN = 'posts'
 
@@ -91,7 +105,7 @@ def feature_extraction(all_u: pd.DataFrame):
     print_with_time('calc posts lengths: total, average, stdev')
 
     users_posts_emojis = [[[c for c in t if c in emoji.UNICODE_EMOJI['en']] for t in user_texts] for user_texts in users_texts]
-    users_emoji_percents = [[len([c for c in t if c in emoji.UNICODE_EMOJI['en']])/len(t) for t in user_texts] for user_texts in users_texts]
+    users_emoji_percents = [[len([c for c in t if c in emoji.UNICODE_EMOJI['en']])/len(t) if len(t) else 0 for t in user_texts] for user_texts in users_texts]
     users_emoji_average_percent = [sum(user_emoji_percents)/len(user_emoji_percents) if user_emoji_percents else 0 for user_emoji_percents in users_emoji_percents]
 
     print_with_time('extract emojies')
@@ -151,7 +165,7 @@ def feature_extraction(all_u: pd.DataFrame):
                 upi.pick_by_hours(user_posts_info, hours, 1, likes_count, comments_count)
                 upi.pick_by_date(user_posts_info, date_, 1, likes_count, comments_count)
             except ValueError as e:
-                raise ValueError(f'user: {i} post: {post}') from e
+                print(f'Error time or date. user: {i} post: {post}')
             upi.add_to_counter(user_posts_info.overall, 1, likes_count, comments_count)
 
         users_posts_info.append(user_posts_info)
@@ -265,7 +279,6 @@ def feature_extraction(all_u: pd.DataFrame):
 
         column_i += 1
 
-
     print_with_time(f'cells: list, dict, str --> int')
 
     # filter out columns with very small fraction of non-trivial values
@@ -300,8 +313,9 @@ def feature_extraction(all_u: pd.DataFrame):
 
     print_with_time(f'scale all columns to [0, 1]')
 
+    return all_u.copy()
 
-def feature_selection(all_u: pd.DataFrame):
+def feature_selection(all_u: pd.DataFrame) -> pd.DataFrame:
 
     # corr = all_u.corr(method='pearson')
     # shuffled_all_u = all_u.sample(frac=1)
@@ -344,25 +358,38 @@ def feature_selection(all_u: pd.DataFrame):
     # corr = all_u.corr(method='pearson')
     # print(min(corr))
 
+    return all_u.copy()
 
-def save_features_as_train_and_test(all_u: pd.DataFrame):
 
-    X_train, _X_test = train_test_split(
-        all_u,
-        test_size=0.2,
-        shuffle=True)
+def save_features_as_train_and_test(all_u: pd.DataFrame, test_size):
 
-    train_store = pd.HDFStore(TRAIN_DATA_FILE)
-    test_store = pd.HDFStore(TEST_DATA_FILE)
+    if test_size == 1:
+        test_store = pd.HDFStore(TEST_DATA_FILE)
+        test_store[DATAFRAME_NAME] = all_u
 
-    train_store[DATAFRAME_NAME] = X_train
-    test_store[DATAFRAME_NAME] = _X_test
+    else:
+        X_train, _X_test = train_test_split(
+            all_u,
+            test_size=test_size,
+            shuffle=True)
+
+        train_store = pd.HDFStore(TRAIN_DATA_FILE)
+        test_store = pd.HDFStore(TEST_DATA_FILE)
+
+        train_store[DATAFRAME_NAME] = X_train
+        test_store[DATAFRAME_NAME] = _X_test
 
     print_with_time('\nstore train and test dataframes in files')
 
 
-all_users_dataframe: pd.DataFrame = read_accounts_from_json_to_dataframe()
-feature_extraction(all_users_dataframe)
-feature_selection(all_users_dataframe)
+if __name__ == '__main__':
+    inference_accounts_filepath = Path(sys.argv[1]) if len(sys.argv) > 1 else None
 
-save_features_as_train_and_test(all_users_dataframe)
+    all_users_dataframe: pd.DataFrame = read_accounts_from_json_to_dataframe(inference_accounts_filepath)
+    print(f'all_users_dataframe.shape: {all_users_dataframe.shape}')
+    all_users_dataframe = feature_extraction(all_users_dataframe)
+    print(f'all_users_dataframe.shape: {all_users_dataframe.shape}')
+    all_users_dataframe = feature_selection(all_users_dataframe)
+    print(f'all_users_dataframe.shape: {all_users_dataframe.shape}')
+
+    save_features_as_train_and_test(all_users_dataframe, 1.0 if inference_accounts_filepath else 0.2)

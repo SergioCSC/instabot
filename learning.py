@@ -1,6 +1,6 @@
 from nn_config import EPOCH_COUNT, HIDDEN_NEURONS_COUNT,\
         LEARNING_RATE, LEARN_TYPE, LEARNING_ATTEMPTS_COUNT, \
-        BATCH_SIZE, MOMENTUM, MODEL_SAVE_PATH, TRAIN_DATA_FILE, DATAFRAME_NAME
+        BATCH_SIZE, MOMENTUM, MODEL_SAVE_FILE, TRAIN_DATA_FILE, DATAFRAME_NAME
 
 from net import InstaNet
 
@@ -150,7 +150,7 @@ for attempt in range(LEARNING_ATTEMPTS_COUNT):
     val_accuracy_histories.append(val_accuracy_history)
     
 
-torch.save(insta_net.state_dict(), MODEL_SAVE_PATH)
+torch.save(insta_net.state_dict(), MODEL_SAVE_FILE)
 
 pass
 
