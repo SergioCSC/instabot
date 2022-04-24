@@ -1,7 +1,9 @@
 import sys
 
 from csv2json import csv2json
-from nn_config import TRAIN_DATA_FILE, TEST_DATA_FILE, DATAFRAME_NAME, ACCOUNTS_JSONS_DIR, ACCOUNTS_JSONS_DIR_2
+from nn_config import TRAIN_DATA_FILE, TEST_DATA_FILE, DATAFRAME_NAME, ACCOUNTS_JSONS_DIR, ACCOUNTS_JSONS_DIR_2, \
+    ACCOUNTS_JSONS_DIR_3, ACCOUNTS_JSONS_DIR_4, ACCOUNTS_JSONS_DIR_5, BOTS_JSONS_DIR, BOTS_JSONS_DIR_2, \
+    ACCOUNTS_JSONS_DIR_6
 from userpoststext import split_words
 from zipf import estimate_zipf
 import userpostsinfo as upi
@@ -76,10 +78,18 @@ def read_accounts_from_json_to_dataframe(filepath: Path) -> pd.DataFrame:
         # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / 'alinkamoon_no_bots.json'))
         # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / 'smagincartoonist_no_bots.json'))
         # all_u = pd.read_json(ACCOUNTS_JSONS_DIR / 'over_500_business_accounts.json')
-        all_u = pd.read_json(ACCOUNTS_JSONS_DIR / 'users_output_from_10_to_16_converted.json')
-        all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR_2 / 'users_output_converted_bots_marked.json'))
+        # all_u = pd.read_json(ACCOUNTS_JSONS_DIR / 'users_output_from_10_to_16_converted.json')
+        # all_u = pd.read_json(ACCOUNTS_JSONS_DIR / '64_users_output_converted.json')
+        all_u = pd.read_json(ACCOUNTS_JSONS_DIR / 'users_output_converted.json')
+        all_u = pd.concat([all_u, pd.read_json(ACCOUNTS_JSONS_DIR_2 / 'users_output_converted_marked.json')])
+        all_u = pd.concat([all_u, pd.read_json(ACCOUNTS_JSONS_DIR_3 / 'users_output_converted_marked.json')])
+        all_u = pd.concat([all_u, pd.read_json(ACCOUNTS_JSONS_DIR_4 / 'users_output_converted_marked.json')])
+        all_u = pd.concat([all_u, pd.read_json(ACCOUNTS_JSONS_DIR_5 / 'users_output_converted_marked.json')])
+        all_u = pd.concat([all_u, pd.read_json(ACCOUNTS_JSONS_DIR_6 / 'users_output_converted_marked.json')])
+        all_u = pd.concat([all_u, pd.read_json(BOTS_JSONS_DIR / 'users_output_converted_marked.json')])
+        all_u = pd.concat([all_u, pd.read_json(BOTS_JSONS_DIR_2 / 'users_output_converted_marked.json')])
         # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / '32_users_output_converted.json'))
-
+        # all_u = all_u.sample(len(all_u) // 100)  # TODO delete this line of code
     print_with_time('read jsons')
     return all_u
 
@@ -102,16 +112,24 @@ def feature_extraction(all_u: pd.DataFrame) -> pd.DataFrame:
     users_average_post_lens = [sum(pl) / len(pl) if pl else 0 for pl in users_posts_lens]
     users_stdev_post_lens = [statistics.stdev(pl) if len(pl) > 1 else 0 for pl in users_posts_lens]
 
+    all_u['total_posts_length'] = users_total_lens
+    all_u['average_post_length'] = users_average_post_lens
+    all_u['stdev_posts_length'] = users_stdev_post_lens
+
     print_with_time('calc posts lengths: total, average, stdev')
 
     users_posts_emojis = [[[c for c in t if c in emoji.UNICODE_EMOJI['en']] for t in user_texts] for user_texts in users_texts]
     users_emoji_percents = [[len([c for c in t if c in emoji.UNICODE_EMOJI['en']])/len(t) if len(t) else 0 for t in user_texts] for user_texts in users_texts]
     users_emoji_average_percent = [sum(user_emoji_percents)/len(user_emoji_percents) if user_emoji_percents else 0 for user_emoji_percents in users_emoji_percents]
 
+    all_u['emoji_average_percent'] = users_emoji_average_percent
+
     print_with_time('extract emojies')
 
     model = fasttext.load_model('lid.176.ftz')
-    users_posts_langs = [Counter(model.predict(t)[0][0][9:] for t in user_texts) for user_texts in users_texts]
+    users_posts_langs = [[1 if model.predict(t)[0][0][9:] == 'ru' else 0 for t in user_texts] for user_texts in users_texts]
+    users_ru_percent = [sum(user_posts_langs)/len(user_posts_langs) if user_posts_langs else 0 for user_posts_langs in users_posts_langs]
+    all_u['ru_lang_fraction'] = users_ru_percent
 
     print_with_time('extract langs')
 
@@ -119,8 +137,9 @@ def feature_extraction(all_u: pd.DataFrame) -> pd.DataFrame:
     for user_vocabulary in users_vocabularies:
         del user_vocabulary['']
     users_word_counts = [np.array(sorted(v.values(), reverse=True)) for v in users_vocabularies]
-    users_alpha_and_C = [estimate_zipf(wc) for wc in users_word_counts]
-
+    users_alpha, users_c = zip(*[estimate_zipf(wc) for wc in users_word_counts])
+    all_u['users_alpha'] = users_alpha
+    all_u['users_c'] = users_c
     print_with_time('extract users vocabularies')
 
     # TODO support russian, not english only!
@@ -136,10 +155,6 @@ def feature_extraction(all_u: pd.DataFrame) -> pd.DataFrame:
     # users_businessness = [is_business(user_texts) for user_texts in users_texts]
 
     print_with_time('calculate which messages could be business')
-#
-    all_u['total_posts_length'] = users_total_lens
-    all_u['average_post_length'] = users_average_post_lens
-    all_u['stdev_posts_length'] = users_stdev_post_lens
 
     all_u[POSTS_COLUMN] = [v if not (isinstance(v, float) and math.isnan(v)) else [] for v in all_u[POSTS_COLUMN]]
 
@@ -165,7 +180,8 @@ def feature_extraction(all_u: pd.DataFrame) -> pd.DataFrame:
                 upi.pick_by_hours(user_posts_info, hours, 1, likes_count, comments_count)
                 upi.pick_by_date(user_posts_info, date_, 1, likes_count, comments_count)
             except ValueError as e:
-                print(f'Error time or date. user: {i} post: {post}')
+                # print(f'Error time or date. user: {i} post: {post}')
+                print('!', end='')
             upi.add_to_counter(user_posts_info.overall, 1, likes_count, comments_count)
 
         users_posts_info.append(user_posts_info)
@@ -223,12 +239,8 @@ def feature_extraction(all_u: pd.DataFrame) -> pd.DataFrame:
     print_with_time(f'ndarray from counters')  # 4 minutes with Dataframes filling
 
     # make all_u columns from posts likes comments rates
-    # all_u[post_columns] = pd.DataFrame(users_post_ndarray_)  # bug: rows with same label
-    # all_u = pd.concat([all_u, pd.DataFrame(users_post_ndarray_)], axis=1)
-    # all_u.join(pd.DataFrame(users_post_ndarray_))
-    # all_u[post_columns[0]] = users_post_ndarray_[:, 0]
-    all_u[post_columns] = pd.DataFrame(users_post_ndarray_, index=all_u.index)  # bug: rows with same label
-    all_u = all_u.copy()  # defragmentation of dataframe
+    all_u = pd.concat([all_u, pd.DataFrame(users_post_ndarray_, index=all_u.index, columns=post_columns)], axis=1)
+    # all_u = all_u.copy()  # defragmentation of dataframe
 
     print_with_time(f'add ndarray to all_u')
 
@@ -315,6 +327,7 @@ def feature_extraction(all_u: pd.DataFrame) -> pd.DataFrame:
 
     return all_u.copy()
 
+
 def feature_selection(all_u: pd.DataFrame) -> pd.DataFrame:
 
     # corr = all_u.corr(method='pearson')
@@ -373,8 +386,8 @@ def save_features_as_train_and_test(all_u: pd.DataFrame, test_size):
             test_size=test_size,
             shuffle=True)
 
-        train_store = pd.HDFStore(TRAIN_DATA_FILE)
-        test_store = pd.HDFStore(TEST_DATA_FILE)
+        train_store = pd.HDFStore(TRAIN_DATA_FILE, mode='w')
+        test_store = pd.HDFStore(TEST_DATA_FILE, mode='w')
 
         train_store[DATAFRAME_NAME] = X_train
         test_store[DATAFRAME_NAME] = _X_test
@@ -383,6 +396,7 @@ def save_features_as_train_and_test(all_u: pd.DataFrame, test_size):
 
 
 if __name__ == '__main__':
+    start_time = time.time()
     inference_accounts_filepath = Path(sys.argv[1]) if len(sys.argv) > 1 else None
 
     all_users_dataframe: pd.DataFrame = read_accounts_from_json_to_dataframe(inference_accounts_filepath)
@@ -393,3 +407,4 @@ if __name__ == '__main__':
     print(f'all_users_dataframe.shape: {all_users_dataframe.shape}')
 
     save_features_as_train_and_test(all_users_dataframe, 1.0 if inference_accounts_filepath else 0.2)
+    print(f'total time: {time.time() - start_time} sec')

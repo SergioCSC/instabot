@@ -1,5 +1,5 @@
-LEARNING_ATTEMPTS_COUNT = 10
-EPOCH_COUNT = 300
+LEARNING_ATTEMPTS_COUNT = 6
+EPOCH_COUNT = 2000
 BATCH_SIZE = 100
 HIDDEN_NEURONS_COUNT = 5
 LEARNING_RATE = 3.0e-4
@@ -17,3 +17,17 @@ THIS_PYTHON_SCRIPT_DIR = Path(__file__).resolve().parent
 ACCOUNTS_JSONS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' / 'users'
 ACCOUNTS_JSONS_DIR_2 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
                        / '21_april' / 'non_bots' / '_alexandra_arch' / 'users'
+ACCOUNTS_JSONS_DIR_3 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
+                       / '21_april' / 'non_bots' / '43' / 'users'
+ACCOUNTS_JSONS_DIR_4 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
+                       / '21_april' / 'non_bots' / 'cha_food' / 'users'
+ACCOUNTS_JSONS_DIR_5 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
+                       / '21_april' / 'non_bots' / 'smagincartoonist' / 'users'
+ACCOUNTS_JSONS_DIR_6 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
+                       / '21_april' / 'non_bots' / 'alinkamoon' / 'users'
+
+BOTS_JSONS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
+                       / '21_april' / 'bots' / 'manually' / 'users'
+
+BOTS_JSONS_DIR_2 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
+                       / '21_april' / 'bots' / 'insta_accs' / 'users'

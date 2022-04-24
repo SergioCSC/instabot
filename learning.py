@@ -110,7 +110,7 @@ for attempt in range(LEARNING_ATTEMPTS_COUNT):
 
             epoch_train_loss.append(f16(loss_value))
             preds = preds.argmax(dim=1)
-            epoch_train_accuracy.append(f16(((preds > 0) == y_batch).float().mean()))
+            epoch_train_accuracy.append(f16((preds == y_batch).float().mean()))
 
             optimizer.step()
 
@@ -121,7 +121,7 @@ for attempt in range(LEARNING_ATTEMPTS_COUNT):
         train_loss_history.append(f16(sum(epoch_train_loss) / len(epoch_train_loss)))
 
         val_preds = val_preds.argmax(dim=1)
-        val_accuracy = f16(((val_preds > 0) == y_validation).float().mean())
+        val_accuracy = f16((val_preds == y_validation).float().mean())
         train_accuracy = f16(sum(epoch_train_accuracy) / len(epoch_train_accuracy))
         train_accuracy_history.append(train_accuracy)
         val_accuracy_history.append(val_accuracy)
@@ -135,7 +135,7 @@ for attempt in range(LEARNING_ATTEMPTS_COUNT):
 
     # test_preds = insta_net.forward(_X_test)
     # test_preds.squeeze_()
-    # test_accuracy = f16(((test_preds > 0) == _y_test).float().mean())
+    # test_accuracy = f16((test_preds == _y_test).float().mean())
     #
     # print(f'test accuracy: {test_accuracy}')
 
@@ -157,15 +157,16 @@ pass
 X_train = train_store[DATAFRAME_NAME]
 del X_train['bot']
 
-for key, values_list in net_weights.items():
-    matrix_numpy = np.array([v.detach().numpy().squeeze() for v in values_list])[0]
-    if matrix_numpy.ndim == 2 and matrix_numpy.shape[1] == len(X_train.columns):
-        df = pd.DataFrame(matrix_numpy, columns=X_train.columns)
-        description = df.describe(include='all')
-        description = description.sort_values(axis=1, by='mean', key=lambda x: -abs(x)).transpose()
-        pass
-    # for value in values_list:
-    #     value_numpy = value.detach().numpy()
-    #     value_dataframe = pd.DataFrame(value_numpy)
-    #     pass
-pass
+# for key, values_list in net_weights.items():
+#     matrix_numpy = np.array([v.detach().numpy().squeeze() for v in values_list])[0]
+#     if matrix_numpy.ndim == 2 and matrix_numpy.shape[1] == len(X_train.columns):
+#         df = pd.DataFrame(matrix_numpy, columns=X_train.columns)
+#         description = df.describe(include='all')
+#         description = description.sort_values(axis=1, by='mean', key=lambda x: -abs(x)).transpose()
+#         pass
+
+#     # for value in values_list:
+#     #     value_numpy = value.detach().numpy()
+#     #     value_dataframe = pd.DataFrame(value_numpy)
+#     #     pass
+# pass

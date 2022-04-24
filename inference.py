@@ -1,8 +1,11 @@
+from sklearn.metrics import classification_report
+
 from nn_config import HIDDEN_NEURONS_COUNT, MODEL_SAVE_FILE, TEST_DATA_FILE, DATAFRAME_NAME
 from net import InstaNet
 
 import torch
 import pandas as pd
+import numpy as np
 
 test_store = pd.HDFStore(TEST_DATA_FILE)
 X_test = test_store[DATAFRAME_NAME]
@@ -19,5 +22,11 @@ insta_net.eval()
 
 # preds = insta_net.forward(X_test)
 preds = insta_net.inference(X_test)
+preds = preds.argmax(dim=1)
+accuracy = ((preds == y_test).float().mean())
+print(np.float16(float(accuracy)))
+
+report = classification_report(y_test, preds, target_names=['human', 'bots', 'business'])
+print(report)
 
 pass

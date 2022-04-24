@@ -34,9 +34,15 @@ def csv2json(csv_filepath: Path, bot_value: int) -> str:
 
 
 if __name__ == '__main__':
-    usernames = ('_alexandra_arch', '43', 'alinkamoon',
-                 'cha_food', 'smagincartoonist')
+    # usernames = ('_alexandra_arch', '43', 'alinkamoon',
+    #              'cha_food', 'smagincartoonist')
+    usernames = ('smagincartoonist', )
     THIS_PYTHON_SCRIPT_DIR = Path(__file__).resolve().parent
+
+    for bot_folders in ('insta_accs', 'manually'):
+        USERS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
+                    / '21_april' / 'bots' / bot_folders / 'users'
+        csv2json(USERS_DIR / 'users_output.csv', 1)
 
     for username in usernames:
         USERS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
