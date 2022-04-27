@@ -27,11 +27,13 @@ def random_seed_initialization(seed: int) -> None:
     torch.backends.cudnn.deterministic = True
 
 
-train_store = pd.HDFStore(TRAIN_DATA_FILE)
+train_store = pd.HDFStore(TRAIN_DATA_FILE, mode='r')
 X_train = train_store[DATAFRAME_NAME]
+train_store.close()
 y_train = X_train['bot']
 del X_train['bot']
 
+X_train = X_train[sorted(X_train.columns)]  # make order the same for learning and inference
 X_train = torch.FloatTensor(X_train.to_numpy())  # maybe HalfTensor
 y_train = torch.LongTensor(y_train.to_numpy())  # maybe CharTensor or BoolTensor
 
@@ -148,14 +150,16 @@ for attempt in range(LEARNING_ATTEMPTS_COUNT):
 
     train_accuracy_histories.append(train_accuracy_history)
     val_accuracy_histories.append(val_accuracy_history)
-    
 
-torch.save(insta_net.state_dict(), MODEL_SAVE_FILE)
+
+    torch.save(insta_net.state_dict(), MODEL_SAVE_FILE)
 
 pass
 
-X_train = train_store[DATAFRAME_NAME]
-del X_train['bot']
+
+# X_train = train_store[DATAFRAME_NAME]
+# train_store.close()
+# del X_train['bot']
 
 # for key, values_list in net_weights.items():
 #     matrix_numpy = np.array([v.detach().numpy().squeeze() for v in values_list])[0]

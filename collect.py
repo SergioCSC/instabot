@@ -3,14 +3,14 @@ import sys
 from csv2json import csv2json
 from nn_config import TRAIN_DATA_FILE, TEST_DATA_FILE, DATAFRAME_NAME, ACCOUNTS_JSONS_DIR, ACCOUNTS_JSONS_DIR_2, \
     ACCOUNTS_JSONS_DIR_3, ACCOUNTS_JSONS_DIR_4, ACCOUNTS_JSONS_DIR_5, BOTS_JSONS_DIR, BOTS_JSONS_DIR_2, \
-    ACCOUNTS_JSONS_DIR_6
+    ACCOUNTS_JSONS_DIR_6, FEATURES_DATA_FILE, FEATURES_NAME, ACCOUNTS_JSONS_DIR_7, DEPENDED_FEATURES_DATA_FILE
 from userpoststext import split_words
 from zipf import estimate_zipf
 import userpostsinfo as upi
 
 import statistics
 from transformers import pipeline
-
+import pickle
 import emoji
 import numpy as np
 import fasttext
@@ -48,10 +48,10 @@ def most_popular_list_value(l_: list) -> Any:
         count = value_popularity_[str(v_)][0] if str(v_) in value_popularity_ else 0
         value_popularity_[str(v_)] = (count + 1, v_)
     if not value_popularity_:
-        return 0, None
+        return 0, 0, None
     sorted_value_popularity_: list[tuple[str, tuple[int, Any]]] \
         = sorted(list(value_popularity_.items()), key=lambda p: p[1][0], reverse=True)
-    return sorted_value_popularity_[0][1]
+    return (len(sorted_value_popularity_),) + sorted_value_popularity_[0][1]
 
 
 def read_accounts_from_json_to_dataframe(filepath: Path) -> pd.DataFrame:
@@ -66,6 +66,18 @@ def read_accounts_from_json_to_dataframe(filepath: Path) -> pd.DataFrame:
         else:
             raise NotImplementedError
         all_u = pd.read_json(filepath)
+
+        features_from_learning_store = pd.HDFStore(FEATURES_DATA_FILE, mode='r')
+        feature_columns = features_from_learning_store[FEATURES_NAME]
+        features_from_learning_store.close()
+        for c in feature_columns:
+            if c not in all_u.columns:
+                all_u[c] = np.nan
+
+        for c in all_u.columns:
+            if c not in list(feature_columns):
+                del all_u[c]
+
     else:
         # ACCOUNTS_JSONS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'json_with_posts'
         # ACCOUNTS_JSONS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_detail_march'
@@ -79,8 +91,11 @@ def read_accounts_from_json_to_dataframe(filepath: Path) -> pd.DataFrame:
         # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / 'smagincartoonist_no_bots.json'))
         # all_u = pd.read_json(ACCOUNTS_JSONS_DIR / 'over_500_business_accounts.json')
         # all_u = pd.read_json(ACCOUNTS_JSONS_DIR / 'users_output_from_10_to_16_converted.json')
+        # all_u = pd.read_json(ACCOUNTS_JSONS_DIR_7 / '9_different_users.json')
         # all_u = pd.read_json(ACCOUNTS_JSONS_DIR / '64_users_output_converted.json')
-        all_u = pd.read_json(ACCOUNTS_JSONS_DIR / 'users_output_converted.json')
+        # all_u = pd.read_json(ACCOUNTS_JSONS_DIR_2 / 'users_output_converted_marked.json')
+
+        all_u = pd.read_json(ACCOUNTS_JSONS_DIR / 'users_output_converted_marked.json')
         all_u = pd.concat([all_u, pd.read_json(ACCOUNTS_JSONS_DIR_2 / 'users_output_converted_marked.json')])
         all_u = pd.concat([all_u, pd.read_json(ACCOUNTS_JSONS_DIR_3 / 'users_output_converted_marked.json')])
         all_u = pd.concat([all_u, pd.read_json(ACCOUNTS_JSONS_DIR_4 / 'users_output_converted_marked.json')])
@@ -88,13 +103,156 @@ def read_accounts_from_json_to_dataframe(filepath: Path) -> pd.DataFrame:
         all_u = pd.concat([all_u, pd.read_json(ACCOUNTS_JSONS_DIR_6 / 'users_output_converted_marked.json')])
         all_u = pd.concat([all_u, pd.read_json(BOTS_JSONS_DIR / 'users_output_converted_marked.json')])
         all_u = pd.concat([all_u, pd.read_json(BOTS_JSONS_DIR_2 / 'users_output_converted_marked.json')])
+
+        features_from_learning_store = pd.HDFStore(FEATURES_DATA_FILE, mode='w')
+        features_from_learning_store[FEATURES_NAME] = pd.Series(all_u.columns)
+        features_from_learning_store.close()
+
         # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / '32_users_output_converted.json'))
         # all_u = all_u.sample(len(all_u) // 100)  # TODO delete this line of code
-    print_with_time('read jsons')
+    print_with_time(f'read jsons. # accounts: {len(all_u)}')
     return all_u
 
 
-def feature_extraction(all_u: pd.DataFrame) -> pd.DataFrame:
+def extract_depended_features(all_u: pd.DataFrame, inference_mode: bool) -> pd.DataFrame:
+
+    if not inference_mode:
+
+        column_processing_info = {}
+        for col in all_u:
+            _, _, most_popular_column_value = most_popular_list_value([v for v in all_u[col] if str(v) not in EMPTY_VALUES_STR])
+            column_processing_info[col] = {'most_pop_0': type(most_popular_column_value)}
+            if isinstance(most_popular_column_value, list):
+                all_u[col] = [len(v) if isinstance(v, list) else 0 for v in all_u[col]]
+            elif isinstance(most_popular_column_value, dict):
+                all_u[col] = [str(v) for v in all_u[col]]
+
+            unique_num, _, most_popular_column_value = most_popular_list_value([v for v in all_u[col] if str(v) not in EMPTY_VALUES_STR])
+            column_processing_info[col]['most_pop_1'] = type(most_popular_column_value)
+            if most_popular_column_value is None:
+                del all_u[col]
+                continue
+
+            column_processing_info[col]['unique'] = unique_num
+            if unique_num > UNIQUE_NUM_THRESHOLD or math.isnan(unique_num):
+                if isinstance(most_popular_column_value, str):
+                    all_u[col] = [0 if str(v) in EMPTY_VALUES_STR else 1 for v in all_u[col]]
+                else:
+                    all_u[col] = [0 if str(v) in EMPTY_VALUES_STR or isinstance(v, str) else v for v in all_u[col]]
+            else:
+
+                # get clases of values
+                classes_of_values = set('' if str(v) in EMPTY_VALUES_STR else str(v) for v in all_u[col])
+                column_processing_info[col]['classes'] = classes_of_values
+                if len(classes_of_values) <= 1:
+                    del all_u[col]
+                    continue
+                if classes_of_values == {'False', 'True'}:
+                    all_u[col] = [0 if str(v) == 'False' else 1 for v in all_u[col]]
+                    continue
+
+                # sort classes of values by len(str(value))
+                sorted_classes_of_values: list \
+                    = sorted(list(classes_of_values), key=lambda p: len(p))
+
+                # make classes from values
+                all_u[col] = [0 if str(v) in EMPTY_VALUES_STR or str(v) not in classes_of_values
+                              else sorted_classes_of_values.index(str(v)) + 1
+                              for v in all_u[col]]
+
+        print_with_time(f'cells: list, dict, str --> int')
+
+        # filter out columns with very small fraction of non-trivial values
+        for col in all_u:
+            if col == 'bot':
+                continue  # don't filter 'bot' column
+            _, most_popular_popularity, _ = most_popular_list_value(list(all_u[col]))
+            non_most_popular_values_fraction = 1 - most_popular_popularity / len(all_u)
+            if non_most_popular_values_fraction < NON_TRIVIAL_VALUES_FRACTION_THRESHOLD:
+                column_processing_info[col]['filter_out'] = 1
+                del all_u[col]
+
+        print_with_time(f'filter out columns with very small fraction of non-trivial values')
+
+        # scale all columns to [0, 1]
+        for col in all_u:
+            if col == 'bot':
+                continue  # don't scale 'bot' column
+            left = min(all_u[col])
+            right = max(all_u[col])
+            column_processing_info[col]['scale_left'] = left
+            column_processing_info[col]['scale_right'] = right
+
+            all_u[col] = [(v - left) / (right - left) for v in all_u[col]]
+
+            pass
+
+        pickle.dump(column_processing_info, open(DEPENDED_FEATURES_DATA_FILE, 'wb'))
+
+    else:
+        column_processing_info = pickle.load(open(DEPENDED_FEATURES_DATA_FILE, 'rb'))
+
+        for col in all_u:
+            most_popular_column_value_type = column_processing_info[col]['most_pop_0']
+            if most_popular_column_value_type == list:
+                all_u[col] = [len(v) if isinstance(v, list) else 0 for v in all_u[col]]
+            elif most_popular_column_value_type == dict:
+                all_u[col] = [str(v) for v in all_u[col]]
+
+            most_popular_column_value_type = column_processing_info[col]['most_pop_1']
+            if most_popular_column_value_type is type(None):
+                del all_u[col]
+                continue
+
+            unique_num = column_processing_info[col]['unique']
+            if unique_num > UNIQUE_NUM_THRESHOLD or math.isnan(unique_num):
+                if most_popular_column_value_type == str:
+                    all_u[col] = [0 if str(v) in EMPTY_VALUES_STR else 1 for v in all_u[col]]
+                else:
+                    all_u[col] = [0 if str(v) in EMPTY_VALUES_STR or isinstance(v, str) else v for v in all_u[col]]
+            else:
+
+                # get clases of values
+                classes_of_values = column_processing_info[col]['classes']
+                if len(classes_of_values) <= 1:
+                    del all_u[col]
+                    continue
+                if classes_of_values == {'False', 'True'}:
+                    all_u[col] = [0 if str(v) == 'False' else 1 for v in all_u[col]]
+                    continue
+
+                # sort classes of values by len(str(value))
+                sorted_classes_of_values: list \
+                    = sorted(list(classes_of_values), key=lambda p: len(p))
+                # make classes from values
+                all_u[col] = [0 if str(v) in EMPTY_VALUES_STR or str(v) not in classes_of_values
+                              else sorted_classes_of_values.index(str(v)) + 1
+                              for v in all_u[col]]
+
+        print_with_time(f'cells: list, dict, str --> int')
+
+        # filter out columns with very small fraction of non-trivial values
+        for col in all_u:
+            if 'filter_out' in column_processing_info[col]:
+                del all_u[col]
+
+        print_with_time(f'filter out columns with very small fraction of non-trivial values')
+
+        # scale all columns to [0, 1]
+        for col in all_u:
+            if col == 'bot':
+                continue  # don't scale 'bot' column
+            left = column_processing_info[col]['scale_left']
+            right = column_processing_info[col]['scale_right']
+
+            all_u[col] = [(v - left) / (right - left) for v in all_u[col]]
+
+            pass
+    print_with_time(f'scale all columns to [0, 1]')
+    return all_u
+
+
+def feature_extraction(all_u: pd.DataFrame, inference_mode: bool) -> pd.DataFrame:
 
     col = 'biography_with_entities'
     if col in all_u:
@@ -107,45 +265,46 @@ def feature_extraction(all_u: pd.DataFrame) -> pd.DataFrame:
 
     print_with_time('read user post texts')
 
-    users_posts_lens = [[len(t) for t in user_texts] for user_texts in users_texts]
-    users_total_lens = [sum(posts_lens) for posts_lens in users_posts_lens]
-    users_average_post_lens = [sum(pl) / len(pl) if pl else 0 for pl in users_posts_lens]
-    users_stdev_post_lens = [statistics.stdev(pl) if len(pl) > 1 else 0 for pl in users_posts_lens]
-
-    all_u['total_posts_length'] = users_total_lens
-    all_u['average_post_length'] = users_average_post_lens
-    all_u['stdev_posts_length'] = users_stdev_post_lens
-
-    print_with_time('calc posts lengths: total, average, stdev')
-
-    users_posts_emojis = [[[c for c in t if c in emoji.UNICODE_EMOJI['en']] for t in user_texts] for user_texts in users_texts]
-    users_emoji_percents = [[len([c for c in t if c in emoji.UNICODE_EMOJI['en']])/len(t) if len(t) else 0 for t in user_texts] for user_texts in users_texts]
-    users_emoji_average_percent = [sum(user_emoji_percents)/len(user_emoji_percents) if user_emoji_percents else 0 for user_emoji_percents in users_emoji_percents]
-
-    all_u['emoji_average_percent'] = users_emoji_average_percent
-
-    print_with_time('extract emojies')
-
-    model = fasttext.load_model('lid.176.ftz')
-    users_posts_langs = [[1 if model.predict(t)[0][0][9:] == 'ru' else 0 for t in user_texts] for user_texts in users_texts]
-    users_ru_percent = [sum(user_posts_langs)/len(user_posts_langs) if user_posts_langs else 0 for user_posts_langs in users_posts_langs]
-    all_u['ru_lang_fraction'] = users_ru_percent
-
-    print_with_time('extract langs')
-
-    users_vocabularies = [Counter(word for t in user_texts for word in split_words(t.lower())) for user_texts in users_texts]
-    for user_vocabulary in users_vocabularies:
-        del user_vocabulary['']
-    users_word_counts = [np.array(sorted(v.values(), reverse=True)) for v in users_vocabularies]
-    users_alpha, users_c = zip(*[estimate_zipf(wc) for wc in users_word_counts])
-    all_u['users_alpha'] = users_alpha
-    all_u['users_c'] = users_c
-    print_with_time('extract users vocabularies')
+    # users_posts_lens = [[len(t) for t in user_texts] for user_texts in users_texts]
+    # users_total_lens = [sum(posts_lens) for posts_lens in users_posts_lens]
+    # users_average_post_lens = [sum(pl) / len(pl) if pl else 0 for pl in users_posts_lens]
+    # users_stdev_post_lens = [statistics.stdev(pl) if len(pl) > 1 else 0 for pl in users_posts_lens]
+    #
+    # all_u['total_posts_length'] = users_total_lens
+    # all_u['average_post_length'] = users_average_post_lens
+    # all_u['stdev_posts_length'] = users_stdev_post_lens
+    #
+    # print_with_time('calc posts lengths: total, average, stdev')
+    #
+    # # users_posts_emojis = [[[c for c in t if c in emoji.UNICODE_EMOJI['en']] for t in user_texts] for user_texts in users_texts]
+    # users_emoji_percents = [[len([c for c in t if c in emoji.UNICODE_EMOJI['en']])/len(t) if len(t) else 0 for t in user_texts] for user_texts in users_texts]
+    # users_emoji_average_percent = [sum(user_emoji_percents)/len(user_emoji_percents) if user_emoji_percents else 0 for user_emoji_percents in users_emoji_percents]
+    #
+    # all_u['emoji_average_percent'] = users_emoji_average_percent
+    #
+    # print_with_time('extract emojies')
+    #
+    # model = fasttext.load_model('lid.176.ftz')
+    # users_posts_langs = [[1 if model.predict(t)[0][0][9:] == 'ru' else 0 for t in user_texts] for user_texts in users_texts]
+    # users_ru_percent = [sum(user_posts_langs)/len(user_posts_langs) if user_posts_langs else 0 for user_posts_langs in users_posts_langs]
+    # all_u['ru_lang_fraction'] = users_ru_percent
+    #
+    # print_with_time('extract langs')
+    #
+    # users_vocabularies = [Counter(word for t in user_texts for word in split_words(t.lower())) for user_texts in users_texts]
+    # for user_vocabulary in users_vocabularies:
+    #     del user_vocabulary['']
+    # users_word_counts = [np.array(sorted(v.values(), reverse=True)) for v in users_vocabularies]
+    # users_alpha, users_c = zip(*[estimate_zipf(wc) for wc in users_word_counts])
+    # all_u['users_alpha'] = users_alpha
+    # all_u['users_c'] = users_c
+    # print_with_time('extract users vocabularies')
 
     # TODO support russian, not english only!
     # classifier = pipeline('text-classification', model='mrm8488/bert-tiny-finetuned-sms-spam-detection')
     # users_spams_dicts = [classifier(user_texts) for user_texts in users_texts]
     # users_spams = [[spam['score'] if spam['label'] == 'LABEL_0' else 1 - spam['score'] for spam in user_spams] for user_spams in users_spams_dicts]
+    # all_u['users_spams'] = users_spams
 
     print_with_time('calculate which messages could be spams')
 
@@ -153,6 +312,7 @@ def feature_extraction(all_u: pd.DataFrame) -> pd.DataFrame:
     # classifier = pipeline('zero-shot-classification')
     # is_business = lambda texts: [r['scores'][0] for r in classifier(texts, candidate_labels=['business'])]
     # users_businessness = [is_business(user_texts) for user_texts in users_texts]
+    # all_u['users_businessness'] = users_businessness
 
     print_with_time('calculate which messages could be business')
 
@@ -180,8 +340,12 @@ def feature_extraction(all_u: pd.DataFrame) -> pd.DataFrame:
                 upi.pick_by_hours(user_posts_info, hours, 1, likes_count, comments_count)
                 upi.pick_by_date(user_posts_info, date_, 1, likes_count, comments_count)
             except ValueError as e:
-                # print(f'Error time or date. user: {i} post: {post}')
-                print('!', end='')
+                # print(f'Error date in post: {post["date"]}'
+                #       f' user pk: {all_u["pk"].iloc[i]} username: {all_u["username"].iloc[i]}'
+                #       f' post_id: {post["post_id"]}'
+                #       f' post_url: {post["post_url"]}')
+                # print('!', end='')
+                pass
             upi.add_to_counter(user_posts_info.overall, 1, likes_count, comments_count)
 
         users_posts_info.append(user_posts_info)
@@ -244,87 +408,7 @@ def feature_extraction(all_u: pd.DataFrame) -> pd.DataFrame:
 
     print_with_time(f'add ndarray to all_u')
 
-    description = all_u.describe(include='all')  # .loc['unique', :]
-
-    print_with_time(f'all_u.descibe()')
-
-    column_i = 0
-    for col in all_u:
-        _, most_popular_column_value = most_popular_list_value([v for v in all_u[col] if str(v) not in EMPTY_VALUES_STR])
-        if isinstance(most_popular_column_value, list):
-            all_u[col] = [len(v) if isinstance(v, list) else 0 for v in all_u[col]]
-        elif isinstance(most_popular_column_value, dict):
-            all_u[col] = [str(v) for v in all_u[col]]
-
-        _, most_popular_column_value = most_popular_list_value([v for v in all_u[col] if str(v) not in EMPTY_VALUES_STR])
-        if most_popular_column_value is None:
-            del all_u[col]
-            continue
-
-        unique_num = description[col]['unique']
-        if unique_num > UNIQUE_NUM_THRESHOLD or math.isnan(unique_num):
-            if isinstance(most_popular_column_value, str):
-                all_u[col] = [0 if str(v) in EMPTY_VALUES_STR else 1 for v in all_u[col]]
-            else:
-                all_u[col] = [0 if str(v) in EMPTY_VALUES_STR or isinstance(v, str) else v for v in all_u[col]]
-        else:
-            # if isinstance(most_popular_column_value, bool):
-            #     # all_u[col] = [int(v) if isinstance(v, bool) else for v in all_u[col]]
-            #     # continue
-            #     pass
-
-            # get clases of values
-            classes_of_values = set('' if str(v) in EMPTY_VALUES_STR else str(v) for v in all_u[col])
-            if len(classes_of_values) <= 1:
-                del all_u[col]
-                continue
-            if classes_of_values == {'False', 'True'}:
-                all_u[col] = [0 if str(v) == 'False' else 1 for v in all_u[col]]
-                continue
-
-            # sort classes of values by len(str(value))
-            sorted_classes_of_values: list \
-                = sorted(list(classes_of_values), key=lambda p: len(p))
-
-            # make classes from values
-            all_u[col] = [0 if str(v) in EMPTY_VALUES_STR else sorted_classes_of_values.index(str(v)) for v in all_u[col]]
-
-        column_i += 1
-
-    print_with_time(f'cells: list, dict, str --> int')
-
-    # filter out columns with very small fraction of non-trivial values
-    for col in all_u:
-        if col == 'bot':
-            continue  # don't filter 'bot' column
-        most_popular_popularity, _ = most_popular_list_value(list(all_u[col]))
-        non_most_popular_values_fraction = 1 - most_popular_popularity / len(all_u)
-        if non_most_popular_values_fraction < NON_TRIVIAL_VALUES_FRACTION_THRESHOLD:
-            del all_u[col]
-
-    print_with_time(f'filter out columns with very small fraction of non-trivial values')
-
-    # scale all columns to [0, 1]
-    for col in all_u:
-        if col == 'bot':
-            continue  # don't scale 'bot' column
-        left = min(all_u[col])
-        right = max(all_u[col])
-        all_u[col] = [(v - left) / (right - left) for v in all_u[col]]
-
-        # logarithmic scale
-        if col in ('media_count', 'follower_count', 'following_count',
-                   'following_tag_count', 'usertags_count', 'total_igtv_videos',
-                   'interop_messaging_user_fbid', 'p', 'l', 'c'):
-            scale = math.log(min([v for v in all_u[col] if v])) - 1
-            scaled = [1 - math.log(v) / scale if v else 0.0 for v in all_u[col]]
-            all_u[col] = scaled
-            pass
-
-        pass
-
-    print_with_time(f'scale all columns to [0, 1]')
-
+    all_u = extract_depended_features(all_u, inference_mode)
     return all_u.copy()
 
 
@@ -374,12 +458,19 @@ def feature_selection(all_u: pd.DataFrame) -> pd.DataFrame:
     return all_u.copy()
 
 
+def check_test_columns_matches_train_columns(test_dataframe: pd.DataFrame):
+    train_store = pd.HDFStore(TRAIN_DATA_FILE, mode='r')
+    train_dataframe = train_store[DATAFRAME_NAME]
+    train_store.close()
+    assert set(train_dataframe.columns) == set(test_dataframe.columns)
+
+
 def save_features_as_train_and_test(all_u: pd.DataFrame, test_size):
 
     if test_size == 1:
-        test_store = pd.HDFStore(TEST_DATA_FILE)
+        test_store = pd.HDFStore(TEST_DATA_FILE, mode='w')
         test_store[DATAFRAME_NAME] = all_u
-
+        test_store.close()
     else:
         X_train, _X_test = train_test_split(
             all_u,
@@ -392,19 +483,29 @@ def save_features_as_train_and_test(all_u: pd.DataFrame, test_size):
         train_store[DATAFRAME_NAME] = X_train
         test_store[DATAFRAME_NAME] = _X_test
 
+        train_store.close()
+        test_store.close()
+
     print_with_time('\nstore train and test dataframes in files')
 
 
-if __name__ == '__main__':
-    start_time = time.time()
-    inference_accounts_filepath = Path(sys.argv[1]) if len(sys.argv) > 1 else None
+def collect_and_save_features(inference_accounts_filepath_: Path):
 
-    all_users_dataframe: pd.DataFrame = read_accounts_from_json_to_dataframe(inference_accounts_filepath)
+    start_time = time.time()
+    all_users_dataframe: pd.DataFrame = read_accounts_from_json_to_dataframe(inference_accounts_filepath_)
     print(f'all_users_dataframe.shape: {all_users_dataframe.shape}')
-    all_users_dataframe = feature_extraction(all_users_dataframe)
+    all_users_dataframe = feature_extraction(all_users_dataframe, bool(inference_accounts_filepath_))
     print(f'all_users_dataframe.shape: {all_users_dataframe.shape}')
     all_users_dataframe = feature_selection(all_users_dataframe)
     print(f'all_users_dataframe.shape: {all_users_dataframe.shape}')
 
-    save_features_as_train_and_test(all_users_dataframe, 1.0 if inference_accounts_filepath else 0.2)
+    if inference_accounts_filepath_:
+        check_test_columns_matches_train_columns(all_users_dataframe)
+
+    save_features_as_train_and_test(all_users_dataframe, 1.0 if inference_accounts_filepath_ else 0.2)
     print(f'total time: {time.time() - start_time} sec')
+
+
+if __name__ == '__main__':
+    inference_accounts_filepath = Path(sys.argv[1]) if len(sys.argv) > 1 else None
+    collect_and_save_features(inference_accounts_filepath)

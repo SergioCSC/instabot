@@ -1,5 +1,5 @@
 LEARNING_ATTEMPTS_COUNT = 6
-EPOCH_COUNT = 2000
+EPOCH_COUNT = 1500
 BATCH_SIZE = 100
 HIDDEN_NEURONS_COUNT = 5
 LEARNING_RATE = 3.0e-4
@@ -8,9 +8,12 @@ MOMENTUM = 0.9
 
 TRAIN_DATA_FILE = 'train_dataframe.h5'
 TEST_DATA_FILE = 'test_dataframe.h5'
+FEATURES_DATA_FILE = 'features.h5'
+DEPENDED_FEATURES_DATA_FILE = 'depended_features.pickle'
 MODEL_SAVE_FILE = 'state_dict_model.pt'
 
 DATAFRAME_NAME = 'features_and_target'
+FEATURES_NAME = 'features'
 
 from pathlib import Path
 THIS_PYTHON_SCRIPT_DIR = Path(__file__).resolve().parent
@@ -25,6 +28,7 @@ ACCOUNTS_JSONS_DIR_5 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_
                        / '21_april' / 'non_bots' / 'smagincartoonist' / 'users'
 ACCOUNTS_JSONS_DIR_6 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
                        / '21_april' / 'non_bots' / 'alinkamoon' / 'users'
+ACCOUNTS_JSONS_DIR_7 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april'
 
 BOTS_JSONS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
                        / '21_april' / 'bots' / 'manually' / 'users'
