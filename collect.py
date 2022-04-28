@@ -1,33 +1,31 @@
-import sys
-from functools import cmp_to_key
-
-from csv2json import csv2json
 from nn_config import TRAIN_DATA_FILE, TEST_DATA_FILE, DATAFRAME_NAME, \
     FEATURES_DATA_FILE, FEATURES_NAME, DEPENDED_FEATURES_DATA_FILE, BOT_COL, \
     SAVED_PK, SAVED_UN, LEARNING_DATASETS_DIR
-from userpoststext import split_words
-from zipf import estimate_zipf
+
+from csv2json import csv2json
 import userpostsinfo as upi
+# from userpoststext import split_words
+# from zipf import estimate_zipf
 
-import statistics
-from transformers import pipeline
-import pickle
-import emoji
 import numpy as np
-import fasttext
-
-
-from collections import defaultdict, Counter
-from pathlib import Path
-from typing import Any
-
 import pandas as pd
+import torch
+from sklearn.model_selection import train_test_split
+# from transformers import pipeline
+# import emoji
+# import fasttext
+
+
+import dataclasses
+import sys
 import math
 import time
-import dataclasses
-
-from sklearn.model_selection import train_test_split
-import torch
+import pickle
+import statistics
+from typing import Any
+from pathlib import Path
+from functools import cmp_to_key
+from collections import defaultdict, Counter
 
 
 EMPTY_VALUES_STR = {'', '0', '0.0', '0.00000', 'nan', 'none', 'None', 'UNKNOWN', '[]'}

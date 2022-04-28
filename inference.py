@@ -1,15 +1,15 @@
-from sklearn.metrics import classification_report
-
-import collect
 from nn_config import HIDDEN_NEURONS_COUNT, MODEL_SAVE_FILE, TEST_DATA_FILE, DATAFRAME_NAME, SAVED_PK, SAVED_UN, \
     BOT_COL, DETECTION
+import collect
 from net import InstaNet
 
-import sys
-from pathlib import Path
+from sklearn.metrics import classification_report
 import torch
 import pandas as pd
 import numpy as np
+
+import sys
+from pathlib import Path
 
 
 inference_accounts_filepath = Path(sys.argv[1]) if len(sys.argv) > 1 else None
