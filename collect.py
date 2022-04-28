@@ -259,7 +259,7 @@ def feature_extraction(all_u: pd.DataFrame, inference_mode: bool) -> pd.DataFram
 
     col = 'biography_with_entities'
     if col in all_u:
-        all_u[col] = [len(v['entities']) for v in all_u[col]]
+        all_u[col] = [len(v['entities']) if isinstance(v, dict) and 'entities' in v else 0 for v in all_u[col]]
 
     digits = '0123456789'
     all_u['digits_in_username'] = [len([c for c in str(v) if c in digits]) for v in all_u['username']]
