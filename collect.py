@@ -1,9 +1,11 @@
 import sys
+from functools import cmp_to_key
 
 from csv2json import csv2json
 from nn_config import TRAIN_DATA_FILE, TEST_DATA_FILE, DATAFRAME_NAME, ACCOUNTS_JSONS_DIR, ACCOUNTS_JSONS_DIR_2, \
     ACCOUNTS_JSONS_DIR_3, ACCOUNTS_JSONS_DIR_4, ACCOUNTS_JSONS_DIR_5, BOTS_JSONS_DIR, BOTS_JSONS_DIR_2, \
-    ACCOUNTS_JSONS_DIR_6, FEATURES_DATA_FILE, FEATURES_NAME, ACCOUNTS_JSONS_DIR_7, DEPENDED_FEATURES_DATA_FILE
+    ACCOUNTS_JSONS_DIR_6, FEATURES_DATA_FILE, FEATURES_NAME, ACCOUNTS_JSONS_DIR_7, DEPENDED_FEATURES_DATA_FILE, BOT_COL, \
+    SAVED_PK, SAVED_UN
 from userpoststext import split_words
 from zipf import estimate_zipf
 import userpostsinfo as upi
@@ -110,16 +112,28 @@ def read_accounts_from_json_to_dataframe(filepath: Path) -> pd.DataFrame:
 
         # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / '32_users_output_converted.json'))
         # all_u = all_u.sample(len(all_u) // 100)  # TODO delete this line of code
+
+    # all_u[SAVED_PK] = all_u['pk']
+    # all_u[SAVED_UN] = all_u['username']
+    all_u.insert(0, SAVED_UN, all_u['username'])
+    all_u.insert(0, SAVED_PK, all_u['pk'])
     print_with_time(f'read jsons. # accounts: {len(all_u)}')
     return all_u
 
 
 def extract_depended_features(all_u: pd.DataFrame, inference_mode: bool) -> pd.DataFrame:
+    def my_str_compare(s1: str, s2: str) -> int:
+        if len(s1) != len(s2):
+            return len(s1) - len(s2)
+        return -1 if s1 < s2 else 0 if s1 == s2 else 1
 
+    columns_to_keep = (BOT_COL, SAVED_PK, SAVED_UN)
     if not inference_mode:
 
         column_processing_info = {}
         for col in all_u:
+            if col in columns_to_keep:
+                continue
             _, _, most_popular_column_value = most_popular_list_value([v for v in all_u[col] if str(v) not in EMPTY_VALUES_STR])
             column_processing_info[col] = {'most_pop_0': type(most_popular_column_value)}
             if isinstance(most_popular_column_value, list):
@@ -153,7 +167,7 @@ def extract_depended_features(all_u: pd.DataFrame, inference_mode: bool) -> pd.D
 
                 # sort classes of values by len(str(value))
                 sorted_classes_of_values: list \
-                    = sorted(list(classes_of_values), key=lambda p: len(p))
+                    = sorted(list(classes_of_values), key=cmp_to_key(my_str_compare))
 
                 # make classes from values
                 all_u[col] = [0 if str(v) in EMPTY_VALUES_STR or str(v) not in classes_of_values
@@ -164,8 +178,8 @@ def extract_depended_features(all_u: pd.DataFrame, inference_mode: bool) -> pd.D
 
         # filter out columns with very small fraction of non-trivial values
         for col in all_u:
-            if col == 'bot':
-                continue  # don't filter 'bot' column
+            if col in columns_to_keep:
+                continue  # don't filter such columns
             _, most_popular_popularity, _ = most_popular_list_value(list(all_u[col]))
             non_most_popular_values_fraction = 1 - most_popular_popularity / len(all_u)
             if non_most_popular_values_fraction < NON_TRIVIAL_VALUES_FRACTION_THRESHOLD:
@@ -193,6 +207,8 @@ def extract_depended_features(all_u: pd.DataFrame, inference_mode: bool) -> pd.D
         column_processing_info = pickle.load(open(DEPENDED_FEATURES_DATA_FILE, 'rb'))
 
         for col in all_u:
+            if col in columns_to_keep:
+                continue
             most_popular_column_value_type = column_processing_info[col]['most_pop_0']
             if most_popular_column_value_type == list:
                 all_u[col] = [len(v) if isinstance(v, list) else 0 for v in all_u[col]]
@@ -223,7 +239,7 @@ def extract_depended_features(all_u: pd.DataFrame, inference_mode: bool) -> pd.D
 
                 # sort classes of values by len(str(value))
                 sorted_classes_of_values: list \
-                    = sorted(list(classes_of_values), key=lambda p: len(p))
+                    = sorted(list(classes_of_values), key=cmp_to_key(my_str_compare))
                 # make classes from values
                 all_u[col] = [0 if str(v) in EMPTY_VALUES_STR or str(v) not in classes_of_values
                               else sorted_classes_of_values.index(str(v)) + 1
@@ -233,6 +249,8 @@ def extract_depended_features(all_u: pd.DataFrame, inference_mode: bool) -> pd.D
 
         # filter out columns with very small fraction of non-trivial values
         for col in all_u:
+            if col in columns_to_keep:
+                continue  # don't filter out such columns
             if 'filter_out' in column_processing_info[col]:
                 del all_u[col]
 
@@ -240,8 +258,8 @@ def extract_depended_features(all_u: pd.DataFrame, inference_mode: bool) -> pd.D
 
         # scale all columns to [0, 1]
         for col in all_u:
-            if col == 'bot':
-                continue  # don't scale 'bot' column
+            if col in columns_to_keep:
+                continue  # don't scale such columns
             left = column_processing_info[col]['scale_left']
             right = column_processing_info[col]['scale_right']
 
@@ -474,7 +492,7 @@ def check_test_columns_matches_train_columns(test_dataframe: pd.DataFrame):
     train_store = pd.HDFStore(TRAIN_DATA_FILE, mode='r')
     train_dataframe = train_store[DATAFRAME_NAME]
     train_store.close()
-    assert set(train_dataframe.columns) == set(test_dataframe.columns)
+    assert set(train_dataframe.columns) == set(test_dataframe.columns) - set((SAVED_PK, SAVED_UN))
 
 
 def save_features_as_train_and_test(all_u: pd.DataFrame, test_size):
@@ -488,6 +506,9 @@ def save_features_as_train_and_test(all_u: pd.DataFrame, test_size):
             all_u,
             test_size=test_size,
             shuffle=True)
+
+        del X_train[SAVED_PK]
+        del X_train[SAVED_UN]
 
         train_store = pd.HDFStore(TRAIN_DATA_FILE, mode='w')
         test_store = pd.HDFStore(TEST_DATA_FILE, mode='w')

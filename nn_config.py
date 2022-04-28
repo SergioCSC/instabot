@@ -1,4 +1,4 @@
-LEARNING_ATTEMPTS_COUNT = 6
+LEARNING_ATTEMPTS_COUNT = 1
 EPOCH_COUNT = 1500
 BATCH_SIZE = 100
 HIDDEN_NEURONS_COUNT = 5
@@ -10,10 +10,15 @@ TRAIN_DATA_FILE = 'train_dataframe.h5'
 TEST_DATA_FILE = 'test_dataframe.h5'
 FEATURES_DATA_FILE = 'features.h5'
 DEPENDED_FEATURES_DATA_FILE = 'depended_features.pickle'
-MODEL_SAVE_FILE = 'state_dict_model.pt'
+MODEL_SAVE_FILE = 'model.pt'
 
 DATAFRAME_NAME = 'features_and_target'
 FEATURES_NAME = 'features'
+
+BOT_COL = 'bot'
+DETECTION = 'detected_bot'
+SAVED_PK = 'saved_pk'
+SAVED_UN = 'saved_username'
 
 from pathlib import Path
 THIS_PYTHON_SCRIPT_DIR = Path(__file__).resolve().parent
