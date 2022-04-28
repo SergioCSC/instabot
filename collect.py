@@ -59,8 +59,11 @@ def read_accounts_from_json_to_dataframe(filepath: Path) -> pd.DataFrame:
         if filepath.suffix == '.csv':
             filepath = csv2json(filepath, -1)
         elif filepath.suffix == '.json':
-            all_u = pd.read_json(filepath)
-            if 'user' in all_u and 'posts' not in all_u and 'biography_with_entities' not in all_u:
+            try:
+                all_u = pd.read_json(filepath)
+                if 'user' in all_u and 'status' in all_u and 'biography_with_entities' not in all_u:
+                    filepath = csv2json(filepath, -1)
+            except ValueError as e:
                 filepath = csv2json(filepath, -1)
         else:
             raise NotImplementedError

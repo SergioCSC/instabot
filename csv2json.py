@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 def csv2json(csv_filepath: Path, bot_value: int) -> str:
-    assert csv_filepath.suffix == '.csv'
+    # assert csv_filepath.suffix == '.csv'
     output_json_filepath = str(csv_filepath)[:-len(csv_filepath.suffix)] + '_converted.json'
     with open(csv_filepath, encoding='utf8') as in_:
         with open(output_json_filepath, 'w', encoding='utf8') as out:
