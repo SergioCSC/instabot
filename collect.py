@@ -474,7 +474,11 @@ def feature_selection(all_u: pd.DataFrame) -> pd.DataFrame:
 
 
 def check_test_columns_matches_train_columns(test_dataframe: pd.DataFrame):
-    train_store = pd.HDFStore(TRAIN_DATA_FILE, mode='r')
+    try:
+        train_store = pd.HDFStore(TRAIN_DATA_FILE, mode='r')
+    except OSError as e:
+        print(f'no train dataframe file: {TRAIN_DATA_FILE}')
+        return
     train_dataframe = train_store[DATAFRAME_NAME]
     train_store.close()
     assert set(train_dataframe.columns) == set(test_dataframe.columns) - set((SAVED_PK, SAVED_UN))
