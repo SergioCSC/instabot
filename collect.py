@@ -258,6 +258,18 @@ def feature_extraction(all_u: pd.DataFrame, inference_mode: bool) -> pd.DataFram
     if col in all_u:
         all_u[col] = [len(v['entities']) for v in all_u[col]]
 
+    digits = '0123456789'
+    all_u['digits_in_username'] = [len([c for c in v if c in digits]) for v in all_u['username']]
+    all_u['digits_in_biography'] = [len([c for c in v if c in digits]) for v in all_u['biography']]
+    all_u['сaps_in_full_name'] = [len([c for c in v if c.lower() != c]) for v in all_u['full_name']]
+
+    phone_in_biography = []
+    for v in all_u['biography']:
+        v = v.replace(' ', '').replace('-', '').replace('_', '').replace('(', '').replace(')', '')
+        result = any(all(c in digits for c in v[i:i+5]) for i in range(len(v)-4))
+        phone_in_biography.append(result)
+    all_u['phone_in_biography'] = phone_in_biography
+
     POSTS_COLUMN = 'posts'
 
     users_posts = all_u[POSTS_COLUMN]  # [:10]
