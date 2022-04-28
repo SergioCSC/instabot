@@ -2,10 +2,9 @@ import sys
 from functools import cmp_to_key
 
 from csv2json import csv2json
-from nn_config import TRAIN_DATA_FILE, TEST_DATA_FILE, DATAFRAME_NAME, ACCOUNTS_JSONS_DIR, ACCOUNTS_JSONS_DIR_2, \
-    ACCOUNTS_JSONS_DIR_3, ACCOUNTS_JSONS_DIR_4, ACCOUNTS_JSONS_DIR_5, BOTS_JSONS_DIR, BOTS_JSONS_DIR_2, \
-    ACCOUNTS_JSONS_DIR_6, FEATURES_DATA_FILE, FEATURES_NAME, ACCOUNTS_JSONS_DIR_7, DEPENDED_FEATURES_DATA_FILE, BOT_COL, \
-    SAVED_PK, SAVED_UN
+from nn_config import TRAIN_DATA_FILE, TEST_DATA_FILE, DATAFRAME_NAME, \
+    FEATURES_DATA_FILE, FEATURES_NAME, DEPENDED_FEATURES_DATA_FILE, BOT_COL, \
+    SAVED_PK, SAVED_UN, LEARNING_DATASETS_DIR
 from userpoststext import split_words
 from zipf import estimate_zipf
 import userpostsinfo as upi
@@ -69,9 +68,8 @@ def read_accounts_from_json_to_dataframe(filepath: Path) -> pd.DataFrame:
             raise NotImplementedError
         all_u = pd.read_json(filepath)
 
-        features_from_learning_store = pd.HDFStore(FEATURES_DATA_FILE, mode='r')
-        feature_columns = features_from_learning_store[FEATURES_NAME]
-        features_from_learning_store.close()
+        feature_columns = pickle.load(open(FEATURES_DATA_FILE, 'rb'))
+
         for c in feature_columns:
             if c not in all_u.columns:
                 all_u[c] = np.nan
@@ -96,25 +94,14 @@ def read_accounts_from_json_to_dataframe(filepath: Path) -> pd.DataFrame:
         # all_u = pd.read_json(ACCOUNTS_JSONS_DIR_7 / '9_different_users.json')
         # all_u = pd.read_json(ACCOUNTS_JSONS_DIR / '64_users_output_converted.json')
         # all_u = pd.read_json(ACCOUNTS_JSONS_DIR_2 / 'users_output_converted_marked.json')
+        jsons_paths = LEARNING_DATASETS_DIR.glob('*.json')
+        dataframes = (pd.read_json(path) for path in jsons_paths if path.is_file())
+        all_u = pd.concat(dataframes)
 
-        all_u = pd.read_json(ACCOUNTS_JSONS_DIR / 'users_output_converted_marked.json')
-        all_u = pd.concat([all_u, pd.read_json(ACCOUNTS_JSONS_DIR_2 / 'users_output_converted_marked.json')])
-        all_u = pd.concat([all_u, pd.read_json(ACCOUNTS_JSONS_DIR_3 / 'users_output_converted_marked.json')])
-        all_u = pd.concat([all_u, pd.read_json(ACCOUNTS_JSONS_DIR_4 / 'users_output_converted_marked.json')])
-        all_u = pd.concat([all_u, pd.read_json(ACCOUNTS_JSONS_DIR_5 / 'users_output_converted_marked.json')])
-        all_u = pd.concat([all_u, pd.read_json(ACCOUNTS_JSONS_DIR_6 / 'users_output_converted_marked.json')])
-        all_u = pd.concat([all_u, pd.read_json(BOTS_JSONS_DIR / 'users_output_converted_marked.json')])
-        all_u = pd.concat([all_u, pd.read_json(BOTS_JSONS_DIR_2 / 'users_output_converted_marked.json')])
+        # all_u = all_u.sample(len(all_u) // 100)
 
-        features_from_learning_store = pd.HDFStore(FEATURES_DATA_FILE, mode='w')
-        features_from_learning_store[FEATURES_NAME] = pd.Series(all_u.columns)
-        features_from_learning_store.close()
+        pickle.dump(all_u.columns, open(FEATURES_DATA_FILE, 'wb'))
 
-        # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / '32_users_output_converted.json'))
-        # all_u = all_u.sample(len(all_u) // 100)  # TODO delete this line of code
-
-    # all_u[SAVED_PK] = all_u['pk']
-    # all_u[SAVED_UN] = all_u['username']
     all_u.insert(0, SAVED_UN, all_u['username'])
     all_u.insert(0, SAVED_PK, all_u['pk'])
     print_with_time(f'read jsons. # accounts: {len(all_u)}')
@@ -190,8 +177,8 @@ def extract_depended_features(all_u: pd.DataFrame, inference_mode: bool) -> pd.D
 
         # scale all columns to [0, 1]
         for col in all_u:
-            if col == 'bot':
-                continue  # don't scale 'bot' column
+            if col in columns_to_keep:
+                continue  # don't scale such columns
             left = min(all_u[col])
             right = max(all_u[col])
             column_processing_info[col]['scale_left'] = left
