@@ -280,17 +280,17 @@ def feature_extraction(all_u: pd.DataFrame, inference_mode: bool) -> pd.DataFram
 
     print_with_time('read user post texts')
 
-    # users_posts_lens = [[len(t) for t in user_texts] for user_texts in users_texts]
-    # users_total_lens = [sum(posts_lens) for posts_lens in users_posts_lens]
-    # users_average_post_lens = [sum(pl) / len(pl) if pl else 0 for pl in users_posts_lens]
-    # users_stdev_post_lens = [statistics.stdev(pl) if len(pl) > 1 else 0 for pl in users_posts_lens]
-    #
-    # all_u['total_posts_length'] = users_total_lens
-    # all_u['average_post_length'] = users_average_post_lens
-    # all_u['stdev_posts_length'] = users_stdev_post_lens
+    users_posts_lens = [[len(t) for t in user_texts] for user_texts in users_texts]
+    users_total_lens = [sum(posts_lens) for posts_lens in users_posts_lens]
+    users_average_post_lens = [sum(pl) / len(pl) if pl else 0 for pl in users_posts_lens]
+    users_stdev_post_lens = [statistics.stdev(pl) if len(pl) > 1 else 0 for pl in users_posts_lens]
+
+    all_u['total_posts_length'] = users_total_lens
+    all_u['average_post_length'] = users_average_post_lens
+    all_u['stdev_posts_length'] = users_stdev_post_lens
     #
     # print_with_time('calc posts lengths: total, average, stdev')
-    #
+    # #
     # # users_posts_emojis = [[[c for c in t if c in emoji.UNICODE_EMOJI['en']] for t in user_texts] for user_texts in users_texts]
     # users_emoji_percents = [[len([c for c in t if c in emoji.UNICODE_EMOJI['en']])/len(t) if len(t) else 0 for t in user_texts] for user_texts in users_texts]
     # users_emoji_average_percent = [sum(user_emoji_percents)/len(user_emoji_percents) if user_emoji_percents else 0 for user_emoji_percents in users_emoji_percents]
@@ -298,14 +298,14 @@ def feature_extraction(all_u: pd.DataFrame, inference_mode: bool) -> pd.DataFram
     # all_u['emoji_average_percent'] = users_emoji_average_percent
     #
     # print_with_time('extract emojies')
-    #
+    # #
     # model = fasttext.load_model('lid.176.ftz')
     # users_posts_langs = [[1 if model.predict(t)[0][0][9:] == 'ru' else 0 for t in user_texts] for user_texts in users_texts]
     # users_ru_percent = [sum(user_posts_langs)/len(user_posts_langs) if user_posts_langs else 0 for user_posts_langs in users_posts_langs]
     # all_u['ru_lang_fraction'] = users_ru_percent
     #
     # print_with_time('extract langs')
-    #
+    # #
     # users_vocabularies = [Counter(word for t in user_texts for word in split_words(t.lower())) for user_texts in users_texts]
     # for user_vocabulary in users_vocabularies:
     #     del user_vocabulary['']
@@ -321,7 +321,7 @@ def feature_extraction(all_u: pd.DataFrame, inference_mode: bool) -> pd.DataFram
     # users_spams = [[spam['score'] if spam['label'] == 'LABEL_0' else 1 - spam['score'] for spam in user_spams] for user_spams in users_spams_dicts]
     # all_u['users_spams'] = users_spams
 
-    print_with_time('calculate which messages could be spams')
+    # print_with_time('calculate which messages could be spams')
 
     # TODO support russian, not english only!
     # classifier = pipeline('zero-shot-classification')
@@ -445,8 +445,8 @@ def feature_selection(all_u: pd.DataFrame) -> pd.DataFrame:
     # del all_u['public_phone_country_code']  # corr with public_phone_number > 0.97
     # corr = all_u.corr(method='pearson')
 
-    del all_u['pk']  # correlation with 'bot' == 0.92, look like cheat
-    del all_u['interop_messaging_user_fbid']  # correlation with 'bot' == 0.93, look like cheat
+    # del all_u['pk']  # correlation with BOT_COL == 0.92, look like cheat
+    # del all_u['interop_messaging_user_fbid']  # correlation with BOT_COL == 0.93, look like cheat
     del all_u['l_autumn_r']  # corr with p_autumn_r > 0.98
     del all_u['l_spring_r']  # corr with p_spring_r > 0.98
     del all_u['l_winter_r']  # corr with p_winter_r > 0.98
