@@ -1,9 +1,11 @@
+from pathlib import Path
+
 LEARNING_ATTEMPTS_COUNT = 1
 EPOCH_COUNT = 1500
 BATCH_SIZE = 100
 HIDDEN_NEURONS_COUNT = 5
 LEARNING_RATE = 3.0e-4
-LEARN_TYPE = f'Adam'
+LEARN_TYPE = 'Adam'
 MOMENTUM = 0.9
 
 TRAIN_DATA_FILE = 'train_dataframe.h5'
@@ -20,26 +22,15 @@ DETECTION = 'detected_bot'
 SAVED_PK = 'saved_pk'
 SAVED_UN = 'saved_username'
 
-from pathlib import Path
+LANG_UNKNOWN = 'unknown'
+COMMON_LANGS = ('en', 'ru', 'zh', 'hi', 'es', 'ar', 'bn', 'fr', 'pt', 'ur',
+                'id', 'de', 'ja', 'it', LANG_UNKNOWN)
+
+ALL_SENTIMENTS_RU = ('neutral', 'positive', 'negative')  #, 'speech', 'skip')
+ALL_SENTIMENTS_EN = ('neu', 'pos', 'neg')  #, 'speech', 'skip')
+
 THIS_PYTHON_SCRIPT_DIR = Path(__file__).resolve().parent
 
 LEARNING_DATASETS_DIR = THIS_PYTHON_SCRIPT_DIR / 'learning_datasets'
-
 ACCOUNTS_JSONS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' / 'users'
-# ACCOUNTS_JSONS_DIR_2 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
-#                        / '21_april' / 'non_bots' / '_alexandra_arch' / 'users'
-# ACCOUNTS_JSONS_DIR_3 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
-#                        / '21_april' / 'non_bots' / '43' / 'users'
-# ACCOUNTS_JSONS_DIR_4 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
-#                        / '21_april' / 'non_bots' / 'cha_food' / 'users'
-# ACCOUNTS_JSONS_DIR_5 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
-#                        / '21_april' / 'non_bots' / 'smagincartoonist' / 'users'
-# ACCOUNTS_JSONS_DIR_6 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
-#                        / '21_april' / 'non_bots' / 'alinkamoon' / 'users'
-# ACCOUNTS_JSONS_DIR_7 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april'
-#
-# BOTS_JSONS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
-#                        / '21_april' / 'bots' / 'manually' / 'users'
-#
-# BOTS_JSONS_DIR_2 = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_business_april' \
-#                        / '21_april' / 'bots' / 'insta_accs' / 'users'
+THIRD_PARTY_LIBRARIES_DIR = THIS_PYTHON_SCRIPT_DIR / 'third_party_models'

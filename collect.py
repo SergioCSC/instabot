@@ -1,18 +1,19 @@
+import userpoststext
 from nn_config import TRAIN_DATA_FILE, TEST_DATA_FILE, DATAFRAME_NAME, \
     FEATURES_DATA_FILE, FEATURES_NAME, DEPENDED_FEATURES_DATA_FILE, BOT_COL, \
-    SAVED_PK, SAVED_UN, LEARNING_DATASETS_DIR
+    SAVED_PK, SAVED_UN, LEARNING_DATASETS_DIR, COMMON_LANGS, LANG_UNKNOWN, THIRD_PARTY_LIBRARIES_DIR, ALL_SENTIMENTS_RU
 
 from csv2json import csv2json
 import userpostsinfo as upi
-# from userpoststext import split_words
-# from zipf import estimate_zipf
+from userpoststext import split_words, DOSTOEVSKY_SENTIMENT_MODEL
+from zipf import estimate_zipf
 
 import numpy as np
 import pandas as pd
-import torch
 from sklearn.model_selection import train_test_split
+import emoji
+# import torch
 # from transformers import pipeline
-# import emoji
 # import fasttext
 
 
@@ -293,47 +294,63 @@ def feature_extraction(all_u: pd.DataFrame, inference_mode: bool) -> pd.DataFram
     all_u['average_post_length'] = users_average_post_lens
     all_u['stdev_posts_length'] = users_stdev_post_lens
     #
-    # print_with_time('calc posts lengths: total, average, stdev')
-    # #
-    # # users_posts_emojis = [[[c for c in t if c in emoji.UNICODE_EMOJI['en']] for t in user_texts] for user_texts in users_texts]
-    # users_emoji_percents = [[len([c for c in t if c in emoji.UNICODE_EMOJI['en']])/len(t) if len(t) else 0 for t in user_texts] for user_texts in users_texts]
-    # users_emoji_average_percent = [sum(user_emoji_percents)/len(user_emoji_percents) if user_emoji_percents else 0 for user_emoji_percents in users_emoji_percents]
-    #
-    # all_u['emoji_average_percent'] = users_emoji_average_percent
-    #
-    # print_with_time('extract emojies')
-    # #
-    # model = fasttext.load_model('lid.176.ftz')
-    # users_posts_langs = [[1 if model.predict(t)[0][0][9:] == 'ru' else 0 for t in user_texts] for user_texts in users_texts]
-    # users_ru_percent = [sum(user_posts_langs)/len(user_posts_langs) if user_posts_langs else 0 for user_posts_langs in users_posts_langs]
-    # all_u['ru_lang_fraction'] = users_ru_percent
-    #
-    # print_with_time('extract langs')
-    # #
-    # users_vocabularies = [Counter(word for t in user_texts for word in split_words(t.lower())) for user_texts in users_texts]
-    # for user_vocabulary in users_vocabularies:
-    #     del user_vocabulary['']
-    # users_word_counts = [np.array(sorted(v.values(), reverse=True)) for v in users_vocabularies]
-    # users_alpha, users_c = zip(*[estimate_zipf(wc) for wc in users_word_counts])
-    # all_u['users_alpha'] = users_alpha
-    # all_u['users_c'] = users_c
-    # print_with_time('extract users vocabularies')
+    print_with_time('calc posts lengths: total, average, stdev')
 
-    # TODO support russian, not english only!
+    users_texts = [[t for t in user_texts if t] for user_texts in users_texts]
+    #
+    # users_posts_emojis = [[[c for c in t if c in emoji.UNICODE_EMOJI['en']] for t in user_texts] for user_texts in users_texts]
+    users_emoji_percents = [[len([c for c in t if c in emoji.UNICODE_EMOJI['en']])/len(t) for t in user_texts] for user_texts in users_texts]
+    users_emoji_average_percent = [sum(user_emoji_percents)/len(user_emoji_percents) if user_emoji_percents else 0 for user_emoji_percents in users_emoji_percents]
+
+    all_u['emoji_average_percent'] = users_emoji_average_percent
+
+    print_with_time('extract emojies')
+
+    users_vocabularies = [Counter(word for t in user_texts for word in split_words(t.lower())) for user_texts in users_texts]
+    for user_vocabulary in users_vocabularies:
+        del user_vocabulary['']
+    users_word_counts = [np.array(sorted(v.values(), reverse=True)) for v in users_vocabularies]
+    users_alpha, users_c = zip(*[estimate_zipf(wc) for wc in users_word_counts])
+    all_u['users_alpha'] = users_alpha
+    all_u['users_c'] = users_c
+    print_with_time('extract users vocabularies')
+
+    users_texts = [[t for t in user_texts if len(t) > 5] for user_texts in users_texts]  # TODO const
+
+    sentiments_ndarray_ = userpoststext.get_sentiments(users_texts)
+    columns = [f'mood_{s}' for s in ALL_SENTIMENTS_RU]
+    all_u = pd.concat([all_u, pd.DataFrame(sentiments_ndarray_, index=all_u.index, columns=columns)], axis=1)
+
+    print_with_time('extract sentiments')
+
+    users_texts = [[''.join(c for c in t if c not in emoji.UNICODE_EMOJI['en']) for t in user_texts] for user_texts in users_texts]
+
+    users_langs_ndarray = userpoststext.get_langs(users_texts)
+
+    columns = [f'lang_{lang}' for lang in COMMON_LANGS]
+    all_u = pd.concat([all_u, pd.DataFrame(users_langs_ndarray, index=all_u.index, columns=columns)], axis=1)
+
+    print_with_time('extract langs')
+
+    users_texts = [[t for t in user_texts if len(t.split()) > 1] for user_texts in users_texts]  # TODO const
+
+
+    # # TODO support russian, not english only!
     # classifier = pipeline('text-classification', model='mrm8488/bert-tiny-finetuned-sms-spam-detection')
-    # users_spams_dicts = [classifier(user_texts) for user_texts in users_texts]
-    # users_spams = [[spam['score'] if spam['label'] == 'LABEL_0' else 1 - spam['score'] for spam in user_spams] for user_spams in users_spams_dicts]
+    # users_spams_dicts = [classifier([t for t in user_texts if isinstance(t, str) and len(t) > 10]) if user_texts else () for user_texts in users_texts]
+    # users_spams = [[spam_dict['score'] if spam_dict['label'] == 'LABEL_0' else 1 - spam_dict['score'] for spam_dict in user_spam_dicts] for user_spam_dicts in users_spams_dicts]
     # all_u['users_spams'] = users_spams
-
+    #
     # print_with_time('calculate which messages could be spams')
 
-    # TODO support russian, not english only!
+    # too slow
+    # # TODO support russian, not english only!
     # classifier = pipeline('zero-shot-classification')
     # is_business = lambda texts: [r['scores'][0] for r in classifier(texts, candidate_labels=['business'])]
     # users_businessness = [is_business(user_texts) for user_texts in users_texts]
     # all_u['users_businessness'] = users_businessness
-
-    print_with_time('calculate which messages could be business')
+    #
+    # print_with_time('calculate which messages could be business')
 
     all_u[POSTS_COLUMN] = [v if not (isinstance(v, float) and math.isnan(v)) else [] for v in all_u[POSTS_COLUMN]]
 
@@ -396,8 +413,7 @@ def feature_extraction(all_u: pd.DataFrame, inference_mode: bool) -> pd.DataFram
     users_post_dataframes = []
     users_post_ndarray_ = np.zeros((len(all_u), len(post_columns)))
 
-    i = 0
-    for user_posts_info in users_posts_info:
+    for i, user_posts_info in enumerate(users_posts_info):
 
         user_posts_dataframe = upi.make_user_posts_dataframe()
         j = 0
@@ -417,7 +433,6 @@ def feature_extraction(all_u: pd.DataFrame, inference_mode: bool) -> pd.DataFram
             j += 3
 
         users_post_dataframes.append(user_posts_dataframe)
-        i += 1
 
     print_with_time(f'ndarray from counters')  # 4 minutes with Dataframes filling
 
