@@ -5,7 +5,7 @@ from nn_config import TRAIN_DATA_FILE, TEST_DATA_FILE, DATAFRAME_NAME, \
 
 from csv2json import csv2json
 import userpostsinfo as upi
-from userpoststext import split_words, DOSTOEVSKY_SENTIMENT_MODEL
+from userpoststext import split_words, print_with_time, DOSTOEVSKY_SENTIMENT_MODEL
 from zipf import estimate_zipf
 
 import numpy as np
@@ -32,14 +32,6 @@ from collections import defaultdict, Counter
 EMPTY_VALUES_STR = {'', '0', '0.0', '0.00000', 'nan', 'none', 'None', 'UNKNOWN', '[]'}
 UNIQUE_NUM_THRESHOLD = 10
 NON_TRIVIAL_VALUES_FRACTION_THRESHOLD = 0.02
-last_time = time.time()
-
-
-def print_with_time(s: str):
-    current_time = time.time()
-    global last_time
-    print(f'{s}: {current_time - last_time:.2f} sec')
-    last_time = current_time
 
 
 def most_popular_list_value(l_: list) -> Any:
@@ -297,6 +289,10 @@ def feature_extraction(all_u: pd.DataFrame, inference_mode: bool) -> pd.DataFram
     print_with_time('calc posts lengths: total, average, stdev')
 
     users_texts = [[t for t in user_texts if t] for user_texts in users_texts]
+    users_texts = [[t if len(t) < 520 else t[:260] + t[-260:] for t in u] for u in users_texts]
+
+    users_texts = [u if len(u) < 100 else sorted(u, key=len) for u in users_texts]
+    users_texts = [u if len(u) < 100 else u[:25] + u[-75:] for u in users_texts]
     #
     # users_posts_emojis = [[[c for c in t if c in emoji.UNICODE_EMOJI['en']] for t in user_texts] for user_texts in users_texts]
     users_emoji_percents = [[len([c for c in t if c in emoji.UNICODE_EMOJI['en']])/len(t) for t in user_texts] for user_texts in users_texts]

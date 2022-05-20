@@ -27,7 +27,8 @@ COMMON_LANGS = ('en', 'ru', 'zh', 'hi', 'es', 'ar', 'bn', 'fr', 'pt', 'ur',
                 'id', 'de', 'ja', 'it', LANG_UNKNOWN)
 
 ALL_SENTIMENTS_RU = ('neutral', 'positive', 'negative')  #, 'speech', 'skip')
-ALL_SENTIMENTS_EN = ('neu', 'pos', 'neg')  #, 'speech', 'skip')
+ALL_SENTIMENTS_EN = ('neu', 'pos', 'neg')
+ALL_SENTIMENTS_MUL = ('Neutral', 'Positive', 'Negative')
 
 THIS_PYTHON_SCRIPT_DIR = Path(__file__).resolve().parent
 

@@ -1,9 +1,11 @@
+import time
 from collections import Counter
+from pathlib import Path
 
 import numpy as np
 
 from nn_config import THIRD_PARTY_LIBRARIES_DIR, COMMON_LANGS, LANG_UNKNOWN, ALL_SENTIMENTS_RU, \
-    ALL_SENTIMENTS_EN
+    ALL_SENTIMENTS_EN, ALL_SENTIMENTS_MUL
 
 import emoji
 import fasttext
@@ -19,14 +21,33 @@ from transformers import pipeline
 import re
 import string
 
+LANG_MODEL = fasttext.load_model(str(THIRD_PARTY_LIBRARIES_DIR / 'lid.176.ftz'))
 
+# sentiment analysis: RU
 FastTextSocialNetworkModel.MODEL_PATH = str(THIRD_PARTY_LIBRARIES_DIR / 'fasttext-social-network-model.bin')
 DOSTOEVSKY_SENTIMENT_MODEL = FastTextSocialNetworkModel(tokenizer=RegexTokenizer())
 
-LANG_MODEL = fasttext.load_model(str(THIRD_PARTY_LIBRARIES_DIR / 'lid.176.ftz'))
 
-nltk.download('vader_lexicon')  # TODO if file not exist
+# sentiment analysis: EN
+lexicon_file_path = THIRD_PARTY_LIBRARIES_DIR / 'sentiment' / 'vader_lexicon.zip'
+assert lexicon_file_path.is_file()
+nltk.data.path.append(THIRD_PARTY_LIBRARIES_DIR)
 SIA = SentimentIntensityAnalyzer()
+
+# sentiment analysis: MULTILINGUAL
+MULTILINGUAL_SENTIMENT_MODEL_PATH = "cardiffnlp/twitter-xlm-roberta-base-sentiment"
+MULTILINGUAL_SENTIMENT_TASK = pipeline("sentiment-analysis",
+                                       model=MULTILINGUAL_SENTIMENT_MODEL_PATH,
+                                       tokenizer=MULTILINGUAL_SENTIMENT_MODEL_PATH)
+
+last_time = time.time()
+
+
+def print_with_time(s: str):
+    current_time = time.time()
+    global last_time
+    print(f'{s}: {current_time - last_time:.2f} sec')
+    last_time = current_time
 
 
 def extract_emojis(s_: str):
@@ -66,23 +87,59 @@ def get_langs(users_texts: list[list[str]]) -> np.array:
     return users_langs_ndarray_
 
 
-def get_sentiments(users_texts: list[list[str]])  -> np.array:
+def get_sentiments(users_texts: list[list[str]]) -> np.array:
     sentiments_ndarray_ = np.zeros((len(users_texts), len(ALL_SENTIMENTS_RU)))
     for user_num, user_texts_ in enumerate(users_texts):
-        user_texts_ru = [t for t in user_texts_ if LANG_MODEL.predict(t)[0][0][9:] == 'ru']
-        user_texts_en = [t for t in user_texts_ if LANG_MODEL.predict(t)[0][0][9:] == 'en']
-        # TODO use languages besides english and russian
-        if not user_texts_ru and not user_texts_en:
+        print_with_time(f'user_num: {user_num}')
+        user_texts_ru = []
+        user_texts_en = []
+        user_texts_multilingual = []
+        for t in user_texts_:
+            if emoji.emoji_count(t) > 0:
+                user_texts_multilingual.append(t)
+                continue
+            predict = LANG_MODEL.predict(t)[0][0][9:]
+            if predict == 'ru':
+                user_texts_ru.append(t)
+            elif predict == 'en':
+                user_texts_en.append(t)
+            elif predict in ('ar', 'en', 'fr', 'de', 'hi', 'it', 'sp', 'pt'):
+                user_texts_multilingual.append(t)
+            else:
+                continue
+
+        if not user_texts_ru and not user_texts_en and not user_texts_multilingual:
             continue
+
         if user_texts_ru:
-            user_results_ru = DOSTOEVSKY_SENTIMENT_MODEL.predict(user_texts_ru)
-            for s_num, s_ in enumerate(ALL_SENTIMENTS_RU):
-                sentiments_ndarray_[user_num, s_num] += sum(r[s_] for r in user_results_ru) / len(user_texts_)
+            try:
+                user_results_ru = DOSTOEVSKY_SENTIMENT_MODEL.predict(user_texts_ru)
+                for s_num, s_ in enumerate(ALL_SENTIMENTS_RU):
+                    sentiments_ndarray_[user_num, s_num] += sum(r[s_] for r in user_results_ru)
+            except RuntimeError as e:
+                print(f'Sentiment predict RUSSIAN: user_num: {user_num}\n\n{e}\n\n')
+
         if user_texts_en:
-            user_results_en = [SIA.polarity_scores(t) for t in user_texts_en]
-            for s_num, s_ in enumerate(ALL_SENTIMENTS_EN):
-                sentiments_ndarray_[user_num, s_num] += sum(r[s_] for r in user_results_en) / len(user_texts_)
-            pass
+            try:
+                user_results_en = [SIA.polarity_scores(t) for t in user_texts_en]
+                for s_num, s_ in enumerate(ALL_SENTIMENTS_EN):
+                    sentiments_ndarray_[user_num, s_num] += sum(r[s_] for r in user_results_en)
+            except RuntimeError as e:
+                print(f'Sentiment predict ENGLISH: user_num: {user_num}\n\n{e}\n\n')
+
+        if user_texts_multilingual:
+            try:
+                user_results_multilingual = MULTILINGUAL_SENTIMENT_TASK(user_texts_multilingual,
+                                                                        return_all_scores=True)
+                for s_num, s_ in enumerate(ALL_SENTIMENTS_MUL):
+                    score = sum(d['score'] for l in user_results_multilingual for d in l if d['label'] == s_)
+                    sentiments_ndarray_[user_num, s_num] += score
+            except RuntimeError as e:
+                print(f'Sentiment predict MULTILINGUAL: user_num: {user_num}\n\n{e}\n\n')
+
+        for s_num in range(len(ALL_SENTIMENTS_RU)):
+            sentiments_ndarray_[user_num, s_num] /= len(user_texts_)
+
         pass
 
     return sentiments_ndarray_
