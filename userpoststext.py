@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 
 from nn_config import THIRD_PARTY_LIBRARIES_DIR, COMMON_LANGS, LANG_UNKNOWN, ALL_SENTIMENTS_RU, \
-    ALL_SENTIMENTS_EN, ALL_SENTIMENTS_MUL
+    ALL_SENTIMENTS_EN, ALL_SENTIMENTS_MUL, HUGGINGFACE_DIR, HUGGINGFACE_CACHE_DIR_OS_ENVIRONMENT_VAR
 
 import emoji
 import fasttext
@@ -13,18 +13,29 @@ import fasttext
 import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
 import dostoevsky
+from dostoevsky import data
 from dostoevsky.models import FastTextSocialNetworkModel
 from dostoevsky.models import FastTextToxicModel
 from dostoevsky.tokenization import RegexTokenizer
-from transformers import pipeline
 
+
+import os
 import re
 import string
 
+# language detection
 LANG_MODEL = fasttext.load_model(str(THIRD_PARTY_LIBRARIES_DIR / 'lid.176.ftz'))
 
 # sentiment analysis: RU
-FastTextSocialNetworkModel.MODEL_PATH = str(THIRD_PARTY_LIBRARIES_DIR / 'fasttext-social-network-model.bin')
+dostoevsky_model_path = THIRD_PARTY_LIBRARIES_DIR / 'fasttext-social-network-model.bin'
+if not dostoevsky_model_path.is_file():
+    model_name = 'fasttext-social-network-model.tar.xz'
+    model_zip_path = THIRD_PARTY_LIBRARIES_DIR / model_name
+    model_url = f'models/{model_name}'
+    data_downloader = data.DataDownloader()
+    data_downloader.download(source=model_url, destination=model_zip_path)
+    model_zip_path.unlink(missing_ok=True)  # remove unnecessary zip file
+FastTextSocialNetworkModel.MODEL_PATH = str(dostoevsky_model_path)
 DOSTOEVSKY_SENTIMENT_MODEL = FastTextSocialNetworkModel(tokenizer=RegexTokenizer())
 
 
@@ -35,6 +46,8 @@ nltk.data.path.append(THIRD_PARTY_LIBRARIES_DIR)
 SIA = SentimentIntensityAnalyzer()
 
 # sentiment analysis: MULTILINGUAL
+os.environ[HUGGINGFACE_CACHE_DIR_OS_ENVIRONMENT_VAR] = str(HUGGINGFACE_DIR)  # strictly before import from transformers !
+from transformers import pipeline  # strictly after making os environment TRANSFORMERS_CACHE !
 MULTILINGUAL_SENTIMENT_MODEL_PATH = "cardiffnlp/twitter-xlm-roberta-base-sentiment"
 MULTILINGUAL_SENTIMENT_TASK = pipeline("sentiment-analysis",
                                        model=MULTILINGUAL_SENTIMENT_MODEL_PATH,
