@@ -41,8 +41,8 @@ insta_net.eval()
 # preds = insta_net.forward(X_test_tensor)
 preds = insta_net.inference(X_test_tensor)
 preds = preds.argmax(dim=1)
-accuracy = ((preds == y_test_tensor).float().mean())
 if y_test_tensor[0] != -1:
+    accuracy = ((preds == y_test_tensor).float().mean())
     print(f'accuracy: {np.float16(float(accuracy))}')
 
 if len(set(int(x) for x in y_test_tensor)) == 3:

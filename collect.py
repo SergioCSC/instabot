@@ -1,11 +1,12 @@
-import userpoststext
 from nn_config import TRAIN_DATA_FILE, TEST_DATA_FILE, DATAFRAME_NAME, \
-    FEATURES_DATA_FILE, FEATURES_NAME, DEPENDED_FEATURES_DATA_FILE, BOT_COL, \
-    SAVED_PK, SAVED_UN, LEARNING_DATASETS_DIR, COMMON_LANGS, LANG_UNKNOWN, THIRD_PARTY_LIBRARIES_DIR, ALL_SENTIMENTS_RU
+    FEATURES_DATA_FILE, DEPENDED_FEATURES_DATA_FILE, BOT_COL, \
+    SAVED_PK, SAVED_UN, LEARNING_DATASETS_DIR, COMMON_LANGS, ALL_SENTIMENTS_RU
 
-from csv2json import csv2json
+import userpoststext
+from userpoststext import split_words, print_with_time
 import userpostsinfo as upi
-from userpoststext import split_words, print_with_time, DOSTOEVSKY_SENTIMENT_MODEL
+from csv2json import csv2json
+
 from zipf import estimate_zipf
 
 import numpy as np
@@ -526,23 +527,24 @@ def save_features_as_train_and_test(all_u: pd.DataFrame, test_size):
     print_with_time('\nstore train and test dataframes in files')
 
 
-def collect_and_save_features(inference_accounts_filepath_: Path):
+def collect_and_save_features(inference_accounts_filepath_: Path = None):
 
     start_time = time.time()
+    inference_mode = bool(inference_accounts_filepath_)
     all_users_dataframe: pd.DataFrame = read_accounts_from_json_to_dataframe(inference_accounts_filepath_)
     print(f'all_users_dataframe.shape: {all_users_dataframe.shape}')
-    all_users_dataframe = feature_extraction(all_users_dataframe, bool(inference_accounts_filepath_))
+    all_users_dataframe = feature_extraction(all_users_dataframe, inference_mode)
     print(f'all_users_dataframe.shape: {all_users_dataframe.shape}')
     all_users_dataframe = feature_selection(all_users_dataframe)
     print(f'all_users_dataframe.shape: {all_users_dataframe.shape}')
 
-    if inference_accounts_filepath_:
+    if inference_mode:
         check_test_columns_matches_train_columns(all_users_dataframe)
 
-    save_features_as_train_and_test(all_users_dataframe, 1.0 if inference_accounts_filepath_ else 0.2)
+    save_features_as_train_and_test(all_users_dataframe, 1.0 if inference_mode else 0.2)
     print(f'total time: {time.time() - start_time} sec')
 
 
 if __name__ == '__main__':
-    inference_accounts_filepath = Path(sys.argv[1]) if len(sys.argv) > 1 else None
-    collect_and_save_features(inference_accounts_filepath)
+    # inference_accounts_filepath = Path(sys.argv[1]) if len(sys.argv) > 1 else None
+    collect_and_save_features()  # inference_accounts_filepath)
