@@ -1,0 +1,123 @@
+Инструкция использования скриптов для определения ботов
+
+
+
+Что надо иметь:
+
+* Linux или Windows. Проверял на Ubuntu 20.04 и Windows 10.
+* python 3.9. Не 3.10, т.к. либа определения языка текста fasttext не устанавливается на 3.10
+* авторизация на нашем dev сервере 87.249.53.215
+
+
+
+
+Установка в Linux:
+
+
+mkdirs /create/path/to/project/
+cd /create/path/to/project/
+git clone ssh://root@87.249.53.215/root/instabot
+cd instabot
+git checkout master
+python -m venv venv  # be sure it's python 3.9, not python 3.10
+source venv/bin/activate
+python -m pip install torch pandas scikit-learn tables nltk emoji fasttext sentencepiece dostoevsky transformers protobuf==3.20.*
+
+
+Установка в Windows (из-под PowerShell):
+
+mkdirs create\path\to\project\
+cd create\path\to\project\
+git clone ssh://root@87.249.53.215/root/instabot
+cd instabot
+git checkout master
+python -m venv venv  # be sure it's python 3.9, not python 3.10
+
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+.\venv\Scripts\activate.ps1
+python -m pip install torch pandas scikit-learn tables nltk emoji fasttext sentencepiece dostoevsky transformers protobuf==3.20.*
+
+
+
+
+Использование обученной модели:
+
+python inference.py sample_json/users_output.json
+
+(users_output.json — это пример файла со спаршенными с инстаграма аккаунтами в формате Марата. В этом файле все аккаунты на самом деле боты, но программа об этом не знает)
+
+Будут загружены сторонние модели для детекции по тексту языка и тональности (порядка 1 гб).
+
+Должна выдать сначала неинтересные логи, а в конце колонки
+
+
+saved_pk                   saved_username      bot           detected_bot
+9056671989              lkjhgfdsa886             -1             1
+50728276305            lmarabic                    -1             1
+12808918260            mavi.qer                    -1             0
+45647648581            knopka86da41          -1             1
+.......
+
+saved_pk и saved_username — это id и имя пользователя в инстаграме
+bot — колонка актуальна для тестирования обучения, когда аккаунты размечены. 0 это человек, 1 это бот, 2 это бизнес аккаунт. -1 означает, что данные не размечены
+detected bot — кем программа считает данный аккаунт (результат обучения).
+
+Разумеется, можно запускать и с другими json файлами в формате Марата
+
+
+
+
+Обучение
+
+
+1. Распаковать архив с размеченными аккаунтами (прикладываю) в папку instabot:
+
+Под Linux:
+
+apt install unzip
+unzip learning_datasets.zip
+
+(Под Windows и так очевидно, как распаковать архив в папку)
+
+
+2. Запустить
+
+python collect.py
+
+— сбор, выделение, очистка, масштабирование признаков. Скрипт создаст файлы train_dataframe.h5 и test_dataframe.h5 — датафреймы с признаками для обучения и для тестирования. Также ещё 2 файла features.pickle и depended_features.pickle с параметрами выделения признаков (эти файлы нужны при выводе (когда обучение не проводится), чтобы выделение признаков было одинаковым для обучения и для вывода)
+
+Сбор работает несколько часов (ориентировочно 6 часов).
+
+
+3. Запустить
+
+python learning.py
+
+— обучение. Оно использует только train_dataframe.h5 и выдаёт model.pt — обученную модель.
+Если запускаете из оси с графической оболочкой, то можно вместо этого запустить
+
+python plot.py
+
+— тогда будет обучена модель + выведется график accuracy (процент правильных ответов) обучения, на learn и на validation. Но для plot.py надо установить библиотеку matplotlib:
+
+python -m pip install matplotlib
+
+
+4. Запустить
+
+python inference.py  # без параметров
+
+Использует только данные, спаршенные с тестовых аккаунтов (файл test_dataframe.h5) и обученную модель (файл model.pt)
+
+Выдаст таблицу c результатами обучения (accuracy, а также precision и recall для каждого из трёх классов: люди, боты и бизнес)
+
+А также колонки вида
+
+saved_pk               saved_username  bot         detected_bot
+42569381              mari.ko                  0             0
+49975878907        zlatoslava140       1             1
+7778360591          kre_4et                  0             0
+33007973734        je_rends                1             2
+
+где bot — это разметка (т.е. на самом деле)
+а detected_bot — это мнение об аккаунте обученной программы
