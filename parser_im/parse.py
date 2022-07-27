@@ -1,19 +1,12 @@
-import json
-import time
-from collections import defaultdict
-from datetime import datetime
-from functools import cache
+from parser_cfg import *
 
+import time
+import sys
 import requests
+from datetime import datetime
 from typing import NamedTuple, Union, Optional, Generator
 from codetiming import Timer
 
-URL = f'https://parser.im/api.php'
-# KEY = '***REMOVED***'  # hypepotok1
-KEY = '***REMOVED***'  # potokpotok
-POST_INFO_BATCH_SIZE = 4
-WAITING_TIME = 1
-STR_CUT = 100
 
 SESSION = requests.Session()
 
@@ -66,7 +59,9 @@ def send_request(params: dict) -> requests.Response:
 def read_users_list(filename: str):
     with open(file=filename) as f:
         for line in f:
-            yield line.strip()
+            line = line.strip()
+            if line not in ('', '\n', '\\n') and not line.startswith('https://'):
+                yield line.split()[1 if line.split()[0].isdigit() else 0]
 
 
 def get_parser_im_task_status(tid: int) -> Optional[str]:
@@ -253,30 +248,27 @@ def main():
     '''
     # print(list(account_info_get_parsed_users([test_parsed_users_str])))
     # tasks = []
-    gens = []
     start = f'{datetime.now():%H_%M__%d_%m}'
-    for f in ('instagram_bots_infl.txt',
-              'instagtam_bots_cleared.txt',
-              'bots_com_like_inst_cleared.txt'):
-    # for f in ('ib_test_1.txt',
-    #           'ib_test_2.txt',
-    #           'ib_test_3.txt'):
+    gens = []
+    account_list_files = sys.argv[1:]
+    # for f in ('instagram_bots_infl.txt',
+    #           'instagtam_bots_cleared.txt',
+    #           'bots_com_like_inst_cleared.txt'):
+    for f in account_list_files:
         users = list(read_users_list(f))
-        gens.append((f'{f}_{start}_a', get_accounts_or_posts_info(users=users, posts=False)))
+        gens.append((PARSED_ACCOUNTS_FILE, get_accounts_or_posts_info(users=users, posts=False)))
         for i in range(0, len(users), POST_INFO_BATCH_SIZE):
             batch = users[i: i + POST_INFO_BATCH_SIZE]
-            gens.append((f'{f}_{start}_p', get_accounts_or_posts_info(users=batch, posts=True)))
+            gens.append((PARSED_POSTS_FILE, get_accounts_or_posts_info(users=batch, posts=True)))
 
-    accounts_info_dict = defaultdict(list)
     with Timer(text='\nTotal time: {:.1f}'):
         while gens:
             for f, gen in gens:
                 try:
-                    accounts_info = next(gen)
-                    if accounts_info:
-                        accounts_info_dict[f].append(accounts_info)
-                        with open(f'{f}_.out', 'a', encoding='utf-8') as out:
-                            out.write(f'{accounts_info}\n\n\n\n\n')
+                    info = next(gen)
+                    if info:
+                        with open(f'{f}', 'a', encoding='utf-8') as out:
+                            out.write(f'{info}\n\n\n\n\n')
                 except StopIteration as e:
                     gens.remove((f, gen))
                 finally:

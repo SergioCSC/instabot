@@ -89,8 +89,8 @@ def read_accounts_from_json_to_dataframe(filepath: Path) -> pd.DataFrame:
         # all_u = pd.read_json(ACCOUNTS_JSONS_DIR_7 / '9_different_users.json')
         # all_u = pd.read_json(ACCOUNTS_JSONS_DIR / '64_users_output_converted.json')
         # all_u = pd.read_json(ACCOUNTS_JSONS_DIR_2 / 'users_output_converted_marked.json')
-        jsons_paths = LEARNING_DATASETS_DIR.glob('*.json')
-        dataframes = (pd.read_json(path) for path in jsons_paths if path.is_file())
+        jsons_paths = list(LEARNING_DATASETS_DIR.glob('*.json'))
+        dataframes = [pd.read_json(path) for path in jsons_paths if path.is_file()]
         all_u = pd.concat(dataframes)
 
         # all_u = all_u.sample(len(all_u) // 100)
@@ -367,8 +367,14 @@ def feature_extraction(all_u: pd.DataFrame, inference_mode: bool) -> pd.DataFram
             comments_count = int(post['comments_count'])
             date_ = post['date']
             time_ = post['time']
-            hours, minutes = (int(t) for t in time_.split(':'))
             try:
+                if time_.count(':') == 1:
+                    hours, minutes = (int(t) for t in time_.split(':'))
+                elif time_.count('.') == 1:
+                    hours, minutes = (int(t) for t in time_.split('.'))
+                else:
+                    raise ValueError(f'error {time_ = }')
+
                 upi.pick_by_minutes(user_posts_info, minutes, 1, likes_count, comments_count)
                 upi.pick_by_hours(user_posts_info, hours, 1, likes_count, comments_count)
                 upi.pick_by_date(user_posts_info, date_, 1, likes_count, comments_count)

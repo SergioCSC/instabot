@@ -115,8 +115,13 @@ def pick_by_hours(upi_: UserPostsInfo, hours_: int,
 
 def pick_by_date(upi_: UserPostsInfo, date_: str,
                  posts_count_: int, likes_count_: int, comments_count_: int):
+    if date_.count('-') == 2:
+        year, month, day = (int(t) for t in date_.split('-'))
+    elif date_.count('.') == 2:
+        day, month, year = (int(t) for t in date_.split('.'))
+    else:
+        raise ValueError(f'error {date_ = }')
 
-    year, month, day = (int(t) for t in date_.split('-'))
     if day < 1 or day > 31:
         raise ValueError(f'error day: {day} date: {date_}')
     if month < 1 or month > 12:
