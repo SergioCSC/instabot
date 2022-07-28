@@ -1,7 +1,10 @@
 import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent.parent))  # add path to config.py
 
-from parser_cfg import *
+from config import DATA_DIR, PARSED_ACCOUNTS_FILE, PREPARED_ACCOUNTS_FILE, PARSED_POSTS_FILE
 
+import sys
 import json
 from collections import defaultdict
 from collections import OrderedDict
@@ -112,7 +115,7 @@ def parser_im_accounts_2_json(parser_im_accounts_filepath: Path, posts: dict,
                     else:
                         parsed_users.add(username)
                     if accounts_with_bot_values and username not in accounts_with_bot_values:
-                        print(f'user {username} is not in marked up. Consider as a bot')
+                        print(f'user {username} is not in marked up. Mark as unknown (-1)')
 
                     # assert (not accounts_with_bot_values) or (username in accounts_with_bot_values)
                     bot = accounts_with_bot_values[username] if username in accounts_with_bot_values else -1
@@ -166,7 +169,7 @@ def get_accounts_with_bot_values(account_list_files: list[Path]) -> dict[str, in
 
 
 def main():
-    account_list_files = [DATA_DIR / filename for filename in sys.argv[1:]]
+    account_list_files = [Path(filename) for filename in sys.argv[1:]]
     accounts_with_bot_values = get_accounts_with_bot_values(account_list_files)
     posts: dict = parser_im_post_2_dict(PARSED_POSTS_FILE)
     parser_im_accounts_2_json(PARSED_ACCOUNTS_FILE, posts, accounts_with_bot_values)

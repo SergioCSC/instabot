@@ -1,3 +1,7 @@
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent.parent))  # add path to config.py
+
 from parser_cfg import *
 from config import DATA_DIR, PARSED_ACCOUNTS_FILE, PARSED_POSTS_FILE
 
@@ -241,7 +245,7 @@ def get_accounts_or_posts_info(users: list[str], posts: bool = False):
 def main():
     start = f'{datetime.now():%H_%M__%d_%m}'
     gens = []
-    account_list_files = [DATA_DIR / filename for filename in sys.argv[1:]]
+    account_list_files = [Path(filename) for filename in sys.argv[1:]]
     # for f in ('instagram_bots_infl.txt',
     #           'instagtam_bots_cleared.txt',
     #           'bots_com_like_inst_cleared.txt'):
