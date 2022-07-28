@@ -1,4 +1,5 @@
 from parser_cfg import *
+from config import DATA_DIR, PARSED_ACCOUNTS_FILE, PARSED_POSTS_FILE
 
 import time
 import sys
