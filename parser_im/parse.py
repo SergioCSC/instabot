@@ -106,9 +106,9 @@ def get_parser_im_task_results(tids: list[int], params: dict, response: requests
                     yield task_result
                     continue
                 task_status = f'{task_status}_0'
-                tprint(f'{task_status:15} {output} {task_result = } {params["links"][:STR_CUT] = } {response.url = }')
+                tprint(f'{task_status:15} {output} {task_result = } "users:" {params["links"][:STR_CUT]} {response.url = }')
                 return
-            tprint(f'{task_status:15} {output} {params["links"][:STR_CUT] = } {response.url = }')
+            tprint(f'{task_status:15} {output} "users:" {params["links"][:STR_CUT]} {response.url = }')
 
             yield
 
@@ -212,7 +212,7 @@ def get_accounts_or_posts_info(users: list[str], posts: bool = False):
             if result and not non_parsed_users:
                 tprint(f'SUCCESS         {"P" if posts else "A"} {i    = } '
                        f'tid = {tids[0] if len(tids) == 1 else tids} '
-                       f'{response.text = } {params["links"][:STR_CUT] = } {response.url = }')
+                       f'{response.text = } "users:" {params["links"][:STR_CUT]} {response.url = }')
                 yield result
                 return
 
@@ -223,7 +223,7 @@ def get_accounts_or_posts_info(users: list[str], posts: bool = False):
                 fail_text = f'PARTIAL SUCCESS {fail_text} {non_parsed_users = } '
             else:
                 fail_text = f'fail            {fail_text} {result = } '
-            fail_text += f'{response.text = } {params["links"][:STR_CUT] = } {response.url = }'
+            fail_text += f'{response.text = } "users:" {params["links"][:STR_CUT]} {response.url = }'
             tprint(fail_text)
             users = non_parsed_users
             yield result
@@ -231,7 +231,7 @@ def get_accounts_or_posts_info(users: list[str], posts: bool = False):
         else:
             status = f'{d["tid"]:15}' if "tid" in d else f'{response.status_code:15}'
             error_text = f'{status} {"P" if posts else "A"} '
-            error_text += f'{i    = } {response.text = } {params["links"][:STR_CUT] = } {response.url = }'
+            error_text += f'{i    = } {response.text = } "users:" {params["links"][:STR_CUT]} {response.url = }'
             tprint(error_text)
             yield
             continue
