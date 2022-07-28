@@ -8,11 +8,11 @@ LEARNING_RATE = 3.0e-4
 LEARN_TYPE = 'Adam'
 MOMENTUM = 0.9
 
-TRAIN_DATA_FILE = 'train_dataframe.h5'
-TEST_DATA_FILE = 'test_dataframe.h5'
-FEATURES_DATA_FILE = 'features.pickle'
-DEPENDED_FEATURES_DATA_FILE = 'depended_features.pickle'
-MODEL_SAVE_FILE = 'model.pt'
+TRAIN_DATA_FILE = 'model/train_dataframe.h5'
+TEST_DATA_FILE = 'model/test_dataframe.h5'
+FEATURES_DATA_FILE = 'model/features.pickle'
+DEPENDED_FEATURES_DATA_FILE = 'model/depended_features.pickle'
+MODEL_SAVE_FILE = 'model/model.pt'
 
 DATAFRAME_NAME = 'features_and_target'
 FEATURES_NAME = 'features'
