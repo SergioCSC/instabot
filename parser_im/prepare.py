@@ -76,7 +76,7 @@ def parser_im_post_2_dict(parser_im_posts_filepath: Path) -> dict:
 
 
 def parser_im_accounts_2_json(parser_im_accounts_filepath: Path, posts: dict,
-                              accounts_with_bot_values: dict[str, int]) -> str:
+                              accounts_with_bot_values: dict[str, int]) -> None:
     def get_username(user_: str) -> str:
         user_ = user_[user_.find('username') + 10:]
         user_ = user_.lstrip()[1:]
@@ -94,9 +94,8 @@ def parser_im_accounts_2_json(parser_im_accounts_filepath: Path, posts: dict,
         return user_
 
     parsed_users = set()
-    output_json_filepath = PREPARED_ACCOUNTS_FILE
     with open(parser_im_accounts_filepath, encoding='utf8') as in_:
-        with open(output_json_filepath, 'w', encoding='utf8') as out:
+        with open(PREPARED_ACCOUNTS_FILE, 'w', encoding='utf8') as out:
             out.write('[\n  ')
             for line_num, line in enumerate(in_):
                 if line in ('', '\n', '\\n'):
@@ -112,8 +111,11 @@ def parser_im_accounts_2_json(parser_im_accounts_filepath: Path, posts: dict,
                         continue
                     else:
                         parsed_users.add(username)
-                    assert (not accounts_with_bot_values) or (username in accounts_with_bot_values)
-                    bot = accounts_with_bot_values[username] if accounts_with_bot_values else -1
+                    if accounts_with_bot_values and username not in accounts_with_bot_values:
+                        print(f'user {username} is not in marked up. Consider as a bot')
+
+                    # assert (not accounts_with_bot_values) or (username in accounts_with_bot_values)
+                    bot = accounts_with_bot_values[username] if username in accounts_with_bot_values else -1
                     user_str = user_str[user_str.find(':') + 1:]
                     user_str = user_str[user_str.find(':') + 1:]
                     start = '{"user": {"pk": '
@@ -142,10 +144,10 @@ def parser_im_accounts_2_json(parser_im_accounts_filepath: Path, posts: dict,
                     out.write(user_str + '\n')
 
             out.write(']')
-    return output_json_filepath
+    return
 
 
-def get_accounts_with_bot_values(account_list_files: list[str]) -> dict[str, int]:
+def get_accounts_with_bot_values(account_list_files: list[Path]) -> dict[str, int]:
     result = {}
     for account_list_file in account_list_files:
         with open(account_list_file) as f:
@@ -164,10 +166,10 @@ def get_accounts_with_bot_values(account_list_files: list[str]) -> dict[str, int
 
 
 def main():
-    account_list_files = sys.argv[1:]
+    account_list_files = [DATA_DIR / filename for filename in sys.argv[1:]]
     accounts_with_bot_values = get_accounts_with_bot_values(account_list_files)
-    posts: dict = parser_im_post_2_dict(Path(PARSED_POSTS_FILE))
-    out_file_path = parser_im_accounts_2_json(Path(PARSED_ACCOUNTS_FILE), posts, accounts_with_bot_values)
+    posts: dict = parser_im_post_2_dict(PARSED_POSTS_FILE)
+    parser_im_accounts_2_json(PARSED_ACCOUNTS_FILE, posts, accounts_with_bot_values)
 
 
 if __name__ == '__main__':

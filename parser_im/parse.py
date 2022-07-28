@@ -240,7 +240,7 @@ def get_accounts_or_posts_info(users: list[str], posts: bool = False):
 def main():
     start = f'{datetime.now():%H_%M__%d_%m}'
     gens = []
-    account_list_files = sys.argv[1:]
+    account_list_files = [DATA_DIR / filename for filename in sys.argv[1:]]
     # for f in ('instagram_bots_infl.txt',
     #           'instagtam_bots_cleared.txt',
     #           'bots_com_like_inst_cleared.txt'):
@@ -257,7 +257,7 @@ def main():
                 try:
                     info = next(gen)
                     if info:
-                        with open(f'{f}', 'a', encoding='utf-8') as out:
+                        with open(f, 'a', encoding='utf-8') as out:
                             out.write(f'{info}\n\n\n\n\n')
                 except StopIteration as e:
                     gens.remove((f, gen))
