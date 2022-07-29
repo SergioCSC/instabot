@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 
 from config import THIRD_PARTY_LIBRARIES_DIR, COMMON_LANGS, LANG_UNKNOWN, ALL_SENTIMENTS_RU, \
-    ALL_SENTIMENTS_EN, ALL_SENTIMENTS_MUL, HUGGINGFACE_DIR, HUGGINGFACE_CACHE_DIR_OS_ENVIRONMENT_VAR
+    ALL_SENTIMENTS_EN, ALL_SENTIMENTS_MUL, HUGGINGFACE_DIR, HUGGINGFACE_CACHE_DIR_OS_ENVIRONMENT_VAR, SLOW_MODE
 
 import emoji
 import fasttext
@@ -116,7 +116,7 @@ def get_sentiments(users_texts: list[list[str]]) -> np.array:
                 user_texts_ru.append(t)
             elif predict == 'en':
                 user_texts_en.append(t)
-            elif predict in ('ar', 'en', 'fr', 'de', 'hi', 'it', 'sp', 'pt'):
+            elif SLOW_MODE >= 2 and predict in ('ar', 'en', 'fr', 'de', 'hi', 'it', 'sp', 'pt'):
                 user_texts_multilingual.append(t)
             else:
                 continue

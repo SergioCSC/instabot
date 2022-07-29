@@ -1,6 +1,6 @@
 from config import TRAIN_DATA_FILE, TEST_DATA_FILE, DATAFRAME_NAME, \
     FEATURES_DATA_FILE, DEPENDED_FEATURES_DATA_FILE, BOT_COL, \
-    SAVED_PK, SAVED_UN, LEARNING_DATASETS_DIR, COMMON_LANGS, ALL_SENTIMENTS_RU
+    SAVED_PK, SAVED_UN, LEARNING_DATASETS_DIR, COMMON_LANGS, ALL_SENTIMENTS_RU, SLOW_MODE
 
 import userpoststext
 from userpoststext import split_words, print_with_time
@@ -299,11 +299,11 @@ def feature_extraction(all_u: pd.DataFrame, inference_mode: bool) -> pd.DataFram
 
     users_texts = [[t for t in user_texts if len(t) > 5] for user_texts in users_texts]  # TODO const
 
-    sentiments_ndarray_ = userpoststext.get_sentiments(users_texts)
-    columns = [f'mood_{s}' for s in ALL_SENTIMENTS_RU]
-    all_u = pd.concat([all_u, pd.DataFrame(sentiments_ndarray_, index=all_u.index, columns=columns)], axis=1)
-
-    print_with_time('extract sentiments')
+    if SLOW_MODE >= 1:
+        sentiments_ndarray_ = userpoststext.get_sentiments(users_texts)
+        columns = [f'mood_{s}' for s in ALL_SENTIMENTS_RU]
+        all_u = pd.concat([all_u, pd.DataFrame(sentiments_ndarray_, index=all_u.index, columns=columns)], axis=1)
+        print_with_time('extract sentiments')
 
     users_texts = [[''.join(c for c in t if c not in emoji.UNICODE_EMOJI['en']) for t in user_texts] for user_texts in users_texts]
 

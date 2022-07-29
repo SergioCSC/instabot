@@ -1,5 +1,6 @@
 from pathlib import Path
 
+SLOW_MODE = 0
 LEARNING_ATTEMPTS_COUNT = 1
 EPOCH_COUNT = 1500
 BATCH_SIZE = 100
