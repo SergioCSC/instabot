@@ -439,38 +439,43 @@ def feature_selection(all_u: pd.DataFrame) -> pd.DataFrame:
     # corr = all_u.corr(method='pearson')
     # shuffled_all_u = all_u.sample(frac=1)
     # auto_correlations = sorted([(c, (shuffled_all_u[c]).autocorr()) for c in all_u], key=lambda p: p[1])
+    column_to_drop = [
 
-    del all_u['external_lynx_url']  # correlation with 'external_url' == 1
-    del all_u['can_hide_public_contacts']  # correlation with 'can_hide_category' == 1
-    del all_u['charity_profile_fundraiser_info']  # correlation with 'is_business' == 1
-    # del all_u['contact_phone_number']  # correlation with 'public_phone_number' == 1
-    # del all_u['city_name']  # correlation with 'city_id' == 0.9998
 
-    # del all_u['is_eligible_for_smb_support_flow']  # correlation with 'is_interest_account' == 0.97
-    del all_u['posts']  # same as 'p_overall'
-    # del all_u['city_id']  # correlation with latitude > 0.97
-    # del all_u['public_phone_country_code']  # corr with public_phone_number > 0.97
+    'external_lynx_url',  # correlation with 'external_url' == 1
+    'can_hide_public_contacts',  # correlation with 'can_hide_category' == 1
+    'charity_profile_fundraiser_info',  # correlation with 'is_business' == 1
+    # 'contact_phone_number',  # correlation with 'public_phone_number' == 1
+    # 'city_name',  # correlation with 'city_id' == 0.9998
+
+    # 'is_eligible_for_smb_support_flow',  # correlation with 'is_interest_account' == 0.97
+    'posts',  # same as 'p_overall'
+    # 'city_id',  # correlation with latitude > 0.97
+    # 'public_phone_country_code',  # corr with public_phone_number > 0.97
     # corr = all_u.corr(method='pearson')
 
-    # del all_u['pk']  # correlation with BOT_COL == 0.92, look like cheat
-    # del all_u['interop_messaging_user_fbid']  # correlation with BOT_COL == 0.93, look like cheat
-    del all_u['l_autumn_r']  # corr with p_autumn_r > 0.98
-    del all_u['l_spring_r']  # corr with p_spring_r > 0.98
-    del all_u['l_winter_r']  # corr with p_winter_r > 0.98
-    del all_u['l_d_var']  # corr with p_d_var > 0.97
-    del all_u['l_d_01_to_10_r']  # corr with p_d_01_to_10_r > 0.99
-    del all_u['l_d_11_to_20_r']  # corr with p_d_11_to_20_r > 0.98
-    del all_u['l_h_21_to_3_r']  # corr with p_h_21_to_3_r > 0.98
-    del all_u['l_h_15_to_21_r']  # corr with p_h_15_to_21_r > 0.98
-    del all_u['l_h_9_to_15_r']  # corr with p_h_9_to_15_r > 0.98
+    # 'pk',  # correlation with BOT_COL == 0.92, look like cheat
+    # 'interop_messaging_user_fbid',  # correlation with BOT_COL == 0.93, look like cheat
+    'l_autumn_r',  # corr with p_autumn_r > 0.98
+    'l_spring_r',  # corr with p_spring_r > 0.98
+    'l_winter_r',  # corr with p_winter_r > 0.98
+    'l_d_var',  # corr with p_d_var > 0.97
+    'l_d_01_to_10_r',  # corr with p_d_01_to_10_r > 0.99
+    'l_d_11_to_20_r',  # corr with p_d_11_to_20_r > 0.98
+    'l_h_21_to_3_r',  # corr with p_h_21_to_3_r > 0.98
+    'l_h_15_to_21_r',  # corr with p_h_15_to_21_r > 0.98
+    'l_h_9_to_15_r',  # corr with p_h_9_to_15_r > 0.98
 
     # low importance due to 1 neuron learning
-    # del all_u['full_name']
-    # del all_u['follower_count']
-    # del all_u['usertags_count']
-    # del all_u['hd_profile_pic_versions']
-    # del all_u['longitude']
-    # del all_u['public_phone_country_code']
+    # 'full_name',
+    # 'follower_count',
+    # 'usertags_count',
+    # 'hd_profile_pic_versions',
+    # 'longitude',
+    # 'public_phone_country_code',
+        ]
+
+    all_u = all_u.drop(column_to_drop, axis=1, errors='ignore')
 
     print_with_time(f'del highly correlated columns')
 

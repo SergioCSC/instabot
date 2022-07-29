@@ -101,10 +101,12 @@ def parser_im_accounts_2_json(parser_im_accounts_filepath: Path, posts: dict,
     if accounts_with_bot_values:  # learning mode
         prepared_accounts_file = LEARNING_DATASETS_DIR / PREPARED_ACCOUNTS_FILENAME
         LEARNING_DATASETS_DIR.mkdir(mode=0o777, parents=True, exist_ok=True)
+        write_mode = 'a'
     else:  # inference mode
         prepared_accounts_file = DATA_DIR / PREPARED_ACCOUNTS_FILENAME
+        write_mode = 'w'
     with open(parser_im_accounts_filepath, encoding='utf8') as in_:
-        with open(prepared_accounts_file, 'w', encoding='utf8') as out:
+        with open(prepared_accounts_file, write_mode, encoding='utf8') as out:
             out.write('[\n  ')
             for line_num, line in enumerate(in_):
                 if line in ('', '\n', '\\n'):
