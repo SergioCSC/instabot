@@ -100,6 +100,7 @@ def parser_im_accounts_2_json(parser_im_accounts_filepath: Path, posts: dict,
     parsed_users = set()
     if accounts_with_bot_values:  # learning mode
         prepared_accounts_file = LEARNING_DATASETS_DIR / PREPARED_ACCOUNTS_FILENAME
+        LEARNING_DATASETS_DIR.mkdir(mode=0o777, parents=True, exist_ok=True)
     else:  # inference mode
         prepared_accounts_file = DATA_DIR / PREPARED_ACCOUNTS_FILENAME
     with open(parser_im_accounts_filepath, encoding='utf8') as in_:
