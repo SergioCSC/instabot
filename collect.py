@@ -74,21 +74,6 @@ def read_accounts_from_json_to_dataframe(filepath: Path) -> pd.DataFrame:
                 del all_u[c]
 
     else:
-        # ACCOUNTS_JSONS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'json_with_posts'
-        # ACCOUNTS_JSONS_DIR = THIS_PYTHON_SCRIPT_DIR / 'parsed_users' / 'bots_detail_march'
-        # all_u = pd.read_json(ACCOUNTS_JSONS_DIR / 'bots_1st_two.json')
-        # all_u = pd.read_json(ACCOUNTS_JSONS_DIR / '50_bots.json')
-        # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / '327_bots.json'))
-        # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / '42_no_bots.json'))
-        # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / '_alexandra_arch_no_bots.json'))
-        # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / 'cha_food_no_bots.json'))
-        # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / 'alinkamoon_no_bots.json'))
-        # all_u = all_u.append(pd.read_json(ACCOUNTS_JSONS_DIR / 'smagincartoonist_no_bots.json'))
-        # all_u = pd.read_json(ACCOUNTS_JSONS_DIR / 'over_500_business_accounts.json')
-        # all_u = pd.read_json(ACCOUNTS_JSONS_DIR / 'users_output_from_10_to_16_converted.json')
-        # all_u = pd.read_json(ACCOUNTS_JSONS_DIR_7 / '9_different_users.json')
-        # all_u = pd.read_json(ACCOUNTS_JSONS_DIR / '64_users_output_converted.json')
-        # all_u = pd.read_json(ACCOUNTS_JSONS_DIR_2 / 'users_output_converted_marked.json')
         jsons_paths = list(LEARNING_DATASETS_DIR.glob('*.json'))
         dataframes = [pd.read_json(path) for path in jsons_paths if path.is_file()]
         all_u = pd.concat(dataframes)

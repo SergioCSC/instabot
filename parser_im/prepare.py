@@ -2,7 +2,8 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))  # add path to config.py
 
-from config import DATA_DIR, PARSED_ACCOUNTS_FILE, PREPARED_ACCOUNTS_FILE, PARSED_POSTS_FILE
+from config import DATA_DIR, PARSED_ACCOUNTS_FILE, PREPARED_ACCOUNTS_FILENAME, \
+    PARSED_POSTS_FILE, LEARNING_DATASETS_DIR
 
 import sys
 import json
@@ -97,8 +98,12 @@ def parser_im_accounts_2_json(parser_im_accounts_filepath: Path, posts: dict,
         return user_
 
     parsed_users = set()
+    if accounts_with_bot_values:  # learning mode
+        prepared_accounts_file = LEARNING_DATASETS_DIR / PREPARED_ACCOUNTS_FILENAME
+    else:  # inference mode
+        prepared_accounts_file = DATA_DIR / PREPARED_ACCOUNTS_FILENAME
     with open(parser_im_accounts_filepath, encoding='utf8') as in_:
-        with open(PREPARED_ACCOUNTS_FILE, 'w', encoding='utf8') as out:
+        with open(prepared_accounts_file, 'w', encoding='utf8') as out:
             out.write('[\n  ')
             for line_num, line in enumerate(in_):
                 if line in ('', '\n', '\\n'):
