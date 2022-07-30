@@ -246,9 +246,7 @@ def main():
     start = f'{datetime.now():%H_%M__%d_%m}'
     gens = []
     account_list_files = [Path(filename) for filename in sys.argv[1:]]
-    # for f in ('instagram_bots_infl.txt',
-    #           'instagtam_bots_cleared.txt',
-    #           'bots_com_like_inst_cleared.txt'):
+    account_list_files = [f if f.is_file() else Path('..') / f for f in account_list_files]
     for f in account_list_files:
         users = list(read_users_list(f))
         gens.append((PARSED_ACCOUNTS_FILE, get_accounts_or_posts_info(users=users, posts=False)))

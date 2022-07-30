@@ -144,7 +144,7 @@ def parser_im_accounts_2_json(parser_im_accounts_filepath: Path, posts: dict,
                     user_str = user_str.replace('},\"status\":\"ok\"}',
                                          ',\"status\":\"ok\"}', 1)
 
-                    for end in ("']\n", "]"):
+                    for end in ("']\n", "']", "]"):
                         if user_str.endswith(end):
                             user_str = user_str[:-len(end)]
 
@@ -180,6 +180,7 @@ def get_accounts_with_bot_values(account_list_files: list[Path]) -> dict[str, in
 
 def main():
     account_list_files = [Path(filename) for filename in sys.argv[1:]]
+    account_list_files = [f if f.is_file() else Path('..') / f for f in account_list_files]
     accounts_with_bot_values = get_accounts_with_bot_values(account_list_files)
     posts: dict = parser_im_post_2_dict(PARSED_POSTS_FILE)
     parser_im_accounts_2_json(PARSED_ACCOUNTS_FILE, posts, accounts_with_bot_values)
