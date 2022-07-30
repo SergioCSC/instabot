@@ -101,12 +101,16 @@ def parser_im_accounts_2_json(parser_im_accounts_filepath: Path, posts: dict,
     if accounts_with_bot_values:  # learning mode
         prepared_accounts_file = LEARNING_DATASETS_DIR / PREPARED_ACCOUNTS_FILENAME
         LEARNING_DATASETS_DIR.mkdir(mode=0o777, parents=True, exist_ok=True)
-        write_mode = 'a'
+        i = 1
+        while prepared_accounts_file.is_file():
+            prefix, suffix = PREPARED_ACCOUNTS_FILENAME.rsplit('.', 1)
+            new_name = f'{prefix}_{i}.{suffix}'
+            prepared_accounts_file = LEARNING_DATASETS_DIR / new_name
+            i += 1
     else:  # inference mode
         prepared_accounts_file = DATA_DIR / PREPARED_ACCOUNTS_FILENAME
-        write_mode = 'w'
     with open(parser_im_accounts_filepath, encoding='utf8') as in_:
-        with open(prepared_accounts_file, write_mode, encoding='utf8') as out:
+        with open(prepared_accounts_file, 'w', encoding='utf8') as out:
             out.write('[\n  ')
             for line_num, line in enumerate(in_):
                 if line in ('', '\n', '\\n'):
@@ -167,11 +171,9 @@ def get_accounts_with_bot_values(account_list_files: list[Path]) -> dict[str, in
                 if line in ('', '\n', '\\n') or line.startswith('https://'):
                     continue
                 parts = line.split()
-                if len(parts) < 2:
-                    print(f'every line of {account_list_file} must contain bot_value and username, separated by space')
-                    raise AssertionError
-                assert len(parts) >= 2
-                assert parts[0].isdigit()
+                if len(parts) < 2 or not parts[0].isdigit():
+                    raise AssertionError(f'every line of {account_list_file} must contain '
+                                         f'bot_value and username, separated by space')
                 result[parts[1]] = int(parts[0])
     return result
 

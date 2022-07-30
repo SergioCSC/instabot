@@ -36,7 +36,7 @@ DATA_DIR = THIS_PYTHON_SCRIPT_DIR / 'data'
 
 PARSED_ACCOUNTS_FILE = DATA_DIR / 'accounts.txt'
 PARSED_POSTS_FILE = DATA_DIR / 'posts.txt'
-PREPARED_ACCOUNTS_FILENAME = 'prepared_accounts_with_posts.json'
+PREPARED_ACCOUNTS_FILENAME = 'accounts_with_posts.json'
 
 MODEL_DIR = THIS_PYTHON_SCRIPT_DIR / 'model'
 
