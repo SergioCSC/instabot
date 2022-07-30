@@ -127,7 +127,7 @@ def parser_im_accounts_2_json(parser_im_accounts_filepath: Path, posts: dict,
                     else:
                         parsed_users.add(username)
                     if accounts_with_bot_values and username not in accounts_with_bot_values:
-                        print(f'user {username} is not in marked up. Mark as unknown (-1)')
+                        print(f'user {username} is not marked up. Mark as unknown (-1)')
 
                     # assert (not accounts_with_bot_values) or (username in accounts_with_bot_values)
                     bot = accounts_with_bot_values[username] if username in accounts_with_bot_values else -1
@@ -144,9 +144,9 @@ def parser_im_accounts_2_json(parser_im_accounts_filepath: Path, posts: dict,
                     user_str = user_str.replace('},\"status\":\"ok\"}',
                                          ',\"status\":\"ok\"}', 1)
 
-                    end = "']\n"
-                    if user_str.endswith(end):
-                        user_str = user_str[:-len(end)]
+                    for end in ("']\n", "]"):
+                        if user_str.endswith(end):
+                            user_str = user_str[:-len(end)]
 
                     user_str = add_posts(user_str)
 
