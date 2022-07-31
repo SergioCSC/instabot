@@ -176,6 +176,7 @@ def extract_depended_features(all_u: pd.DataFrame, inference_mode: bool) -> pd.D
         for col in all_u:
             if col in columns_to_keep:
                 continue
+            # TODO: why I am sure that col in column_processing_info ?
             most_popular_column_value_type = column_processing_info[col]['most_pop_0']
             if most_popular_column_value_type == list:
                 all_u[col] = [len(v) if isinstance(v, list) else 0 for v in all_u[col]]
