@@ -50,8 +50,6 @@ if len(set(int(x) for x in y_test_tensor)) == 3:
     report = classification_report(y_test_tensor, preds, target_names=['human', 'bots', 'business'])
     print(report)
 
-print(f'predictions: {preds.tolist()}')
-
 additional_columns = pd.DataFrame({BOT_COL: y_test_col,
                                    DETECTION: preds,
                                    SAVED_PK: saved_pk_col,
