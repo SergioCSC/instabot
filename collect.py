@@ -49,7 +49,7 @@ def most_popular_list_value(l_: list) -> Any:
 
 def read_accounts_from_json_to_dataframe(filepath: Path) -> pd.DataFrame:
 
-    if filepath:
+    if filepath:  # inference mode
         if filepath.suffix == '.csv':
             filepath = csv2json(filepath, -1)
         elif filepath.suffix == '.json':
@@ -73,7 +73,7 @@ def read_accounts_from_json_to_dataframe(filepath: Path) -> pd.DataFrame:
             if c not in list(feature_columns):
                 del all_u[c]
 
-    else:
+    else:  # learning mode
         jsons_paths = list(LEARNING_DATASETS_DIR.glob('*.json'))
         dataframes = [pd.read_json(path) for path in jsons_paths if path.is_file()]
         all_u = pd.concat(dataframes)
@@ -543,4 +543,4 @@ def collect_and_save_features(inference_accounts_filepath_: Path = None):
 
 if __name__ == '__main__':
     # inference_accounts_filepath = Path(sys.argv[1]) if len(sys.argv) > 1 else None
-    collect_and_save_features()  # inference_accounts_filepath)
+    collect_and_save_features()

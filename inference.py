@@ -9,7 +9,6 @@ import pandas as pd
 import numpy as np
 
 import sys
-from pathlib import Path
 
 
 after_learning_mode = sys.argv[1] if len(sys.argv) > 1 else None
@@ -66,7 +65,3 @@ print(X_test_extended.to_string(columns=(SAVED_PK, SAVED_UN, BOT_COL, DETECTION)
 
 # print(f'correlation of bot and detected bot: '
 #       f'{X_test_with_detected_bot[["bot", "detected_bot"]].corr(method="pearson")}')
-
-# result_json = {}
-
-# for
