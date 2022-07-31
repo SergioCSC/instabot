@@ -1,13 +1,13 @@
 from pathlib import Path
 
-SLOW_MODE = 0
-LEARNING_ATTEMPTS_COUNT = 1
-EPOCH_COUNT = 1500
-BATCH_SIZE = 100
-HIDDEN_NEURONS_COUNT = 5
-LEARNING_RATE = 3.0e-4
-LEARN_TYPE = 'Adam'
-MOMENTUM = 0.9
+SLOW_MODE = 0  # 0 is fast (~5 min), 1 is middle (~0.5 hour), 2 is slow (~6 hours)
+LEARNING_ATTEMPTS_COUNT = 1  # number of tries of learning. for debug, only last attempt is used
+EPOCH_COUNT = 1500  # number of epochs of learning. Usually not greater than 1500
+BATCH_SIZE = 100  # batch size in learning. Default value 100 seems to be ok
+HIDDEN_NEURONS_COUNT = 5  # num of neurons in hidden layers
+LEARNING_RATE = 3.0e-4  # rate of learning. 3.0e-4 is ok for Adam method
+LEARN_TYPE = 'Adam'  # other type of learning are 'ASGD', 'SGD' and 2 'SGD' with momentum (see learning.py)
+MOMENTUM = 0.9  # used in SGD with momentum and SGD with Nesterov momentum only
 
 DATAFRAME_NAME = 'features_and_target'
 FEATURES_NAME = 'features'
