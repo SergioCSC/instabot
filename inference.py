@@ -1,5 +1,5 @@
 from config import HIDDEN_NEURONS_COUNT, MODEL_SAVE_FILE, TEST_DATA_FILE, DATAFRAME_NAME, SAVED_PK, SAVED_UN, \
-    BOT_COL, DETECTION
+    BOT_COL, DETECTION, DATA_DIR, PREPARED_ACCOUNTS_FILENAME
 import collect
 from net import InstaNet
 
@@ -12,8 +12,10 @@ import sys
 from pathlib import Path
 
 
-inference_accounts_filepath = Path(sys.argv[1]) if len(sys.argv) > 1 else None
-if inference_accounts_filepath:
+after_learning_mode = sys.argv[1] if len(sys.argv) > 1 else None
+after_learning_mode = after_learning_mode in ('-l', '--after-learning')
+if not after_learning_mode:
+    inference_accounts_filepath = DATA_DIR / PREPARED_ACCOUNTS_FILENAME
     collect.collect_and_save_features(inference_accounts_filepath)
     print(f'inference accounts file path: {inference_accounts_filepath}')
 
