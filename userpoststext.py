@@ -172,7 +172,7 @@ if __name__ == '__main__':
     print(model.predict('影響包含對氣候的變化以及自然資源的枯竭程度', k=2))
     # print(model.predict(['Ein, zwei, drei, vier' for _ in range(10000)], k=2))
 
-    user_texts = ['Hello!', 'Special price! 30% off sales! Please call 89728658235',
+    user_texts = ['Hello!', 'Special price! 30% off sales! Please call 89123456789',
                   'Ах ты мой милый', 'Папа у Васи силён. Но он слишком умный, сцуко']
 
     # classifier = pipeline('sentiment-analysis')
