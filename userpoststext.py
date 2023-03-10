@@ -167,12 +167,9 @@ if __name__ == '__main__':
     print(extract_emojis(s))
 
     model = fasttext.load_model(str(THIRD_PARTY_LIBRARIES_DIR / 'lid.176.ftz'))
-    print(model.predict('الشمس تشرق')[0][0])
-    print(model.predict('الشمس تشرق', k=2))
-    print(model.predict('影響包含對氣候的變化以及自然資源的枯竭程度', k=2))
     # print(model.predict(['Ein, zwei, drei, vier' for _ in range(10000)], k=2))
 
-    user_texts = ['Hello!', 'Special price! 30% off sales! Please call 89123456789',
+    user_texts = ['Hello!', 'Special price! 30% off sales! Please call 0123456789',
                   'Ах ты мой милый', 'Папа у Васи силён. Но он слишком умный, сцуко']
 
     # classifier = pipeline('sentiment-analysis')

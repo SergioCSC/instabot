@@ -38,9 +38,6 @@ def csv2json(csv_filepath: Path, bot_value: int) -> str:
 
 
 def main():
-    # usernames = ('_alexandra_arch', '43', 'alinkamoon',
-    #              'cha_food', 'smagincartoonist')
-    # usernames = ('smagincartoonist', )
     THIS_PYTHON_SCRIPT_DIR = Path(__file__).resolve().parent
     #
     # for bot_folders in ('insta_accs', 'manually'):
